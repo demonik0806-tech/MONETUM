@@ -46,6 +46,7 @@ class Presupuesto(db.Model):
     limite_sugerido = db.Column(db.Float, nullable=False)
     gasto_actual = db.Column(db.Float, default=0.0)
     meta_asignada = db.Column(db.String(50), nullable=True)
+    tipo_gasto = db.Column(db.String(20), default="Fijo")  # Fijo, Hormiga, Ocasional
 
 class Deuda(db.Model):
     __tablename__ = "deudas"
@@ -62,6 +63,15 @@ class IngresoExtra(db.Model):
     usuario_id = db.Column(db.Integer, db.ForeignKey("usuarios.id"), nullable=False)
     concepto = db.Column(db.String(100), nullable=False)
     monto = db.Column(db.Float, nullable=False)
+
+class MiniReto(db.Model):
+    __tablename__ = "mini_retos"
+    id = db.Column(db.Integer, primary_key=True)
+    usuario_id = db.Column(db.Integer, db.ForeignKey("usuarios.id"), nullable=False)
+    titulo = db.Column(db.String(100), nullable=False)
+    meta_monto = db.Column(db.Float, nullable=False)
+    ahorrado_monto = db.Column(db.Float, default=0.0)
+    completado = db.Column(db.Boolean, default=False)
 
 @app.after_request
 def agregar_cabeceras_seguridad(response):
@@ -102,7 +112,8 @@ def panel_principal():
     presupuestos = Presupuesto.query.filter_by(usuario_id=usuario.id).all()
     deudas = Deuda.query.filter_by(usuario_id=usuario.id).all()
     ingresos_extras = IngresoExtra.query.filter_by(usuario_id=usuario.id).all()
-    return render_template("index.html", usuario=usuario, presupuestos=presupuestos, deudas=deudas, ingresos_extras=ingresos_extras)
+    mini_retos = MiniReto.query.filter_by(usuario_id=usuario.id).all()
+    return render_template("index.html", usuario=usuario, presupuestos=presupuestos, deudas=deudas, ingresos_extras=ingresos_extras, mini_retos=mini_retos)
 
 @app.route("/api/actualizar-presupuesto", methods=["POST"])
 @csrf.exempt
@@ -115,8 +126,17 @@ def actualizar_presupuesto():
         p.limite_sugerido = datos["limite"]
         p.gasto_actual = datos["gasto_actual"]
         p.meta_asignada = datos["meta"]
+        if "tipo_gasto" in datos:
+            p.tipo_gasto = datos["tipo_gasto"]
     else:
-        db.session.add(Presupuesto(usuario_id=usuario.id, categoria=datos["categoria"], limite_sugerido=datos["limite"], gasto_actual=datos["gasto_actual"], meta_asignada=datos["meta"]))
+        db.session.add(Presupuesto(
+            usuario_id=usuario.id, 
+            categoria=datos["categoria"], 
+            limite_sugerido=datos["limite"], 
+            gasto_actual=datos["gasto_actual"], 
+            meta_asignada=datos["meta"],
+            tipo_gasto=datos.get("tipo_gasto", "Fijo")
+        ))
     db.session.commit()
     return jsonify({"status": "ok"})
 
@@ -185,6 +205,47 @@ def eliminar_ingreso_extra():
         db.session.commit()
     return jsonify({"status": "ok"})
 
+@app.route("/api/crear-mini-reto", methods=["POST"])
+@csrf.exempt
+def crear_mini_reto():
+    if "usuario" not in session: return jsonify({"error": "No autorizado"}), 403
+    datos = request.json
+    usuario = Usuario.query.filter_by(username=session["usuario"]).first()
+    titulo = datos.get("titulo", "").strip()
+    meta_monto = float(datos.get("meta_monto", 0))
+    if titulo and meta_monto > 0:
+        db.session.add(MiniReto(usuario_id=usuario.id, titulo=titulo, meta_monto=meta_monto))
+        db.session.commit()
+    return jsonify({"status": "ok"})
+
+@app.route("/api/abonar-mini-reto", methods=["POST"])
+@csrf.exempt
+def abonar_mini_reto():
+    if "usuario" not in session: return jsonify({"error": "No autorizado"}), 403
+    datos = request.json
+    usuario = Usuario.query.filter_by(username=session["usuario"]).first()
+    reto_id = datos.get("id")
+    monto = float(datos.get("monto", 0))
+    reto = MiniReto.query.filter_by(usuario_id=usuario.id, id=reto_id).first()
+    if reto and monto > 0:
+        reto.ahorrado_monto += monto
+        if reto.ahorrado_monto >= reto.meta_monto:
+            reto.completado = True
+        db.session.commit()
+    return jsonify({"status": "ok"})
+
+@app.route("/api/eliminar-mini-reto", methods=["POST"])
+@csrf.exempt
+def eliminar_mini_reto():
+    if "usuario" not in session: return jsonify({"error": "No autorizado"}), 403
+    datos = request.json
+    usuario = Usuario.query.filter_by(username=session["usuario"]).first()
+    reto = MiniReto.query.filter_by(usuario_id=usuario.id, id=datos["id"]).first()
+    if reto:
+        db.session.delete(reto)
+        db.session.commit()
+    return jsonify({"status": "ok"})
+
 @app.route("/api/depositar-meta", methods=["POST"])
 @csrf.exempt
 def depositar_meta():
@@ -237,12 +298,14 @@ def inicializar_bd():
         db.create_all()
         inspector = inspect(db.engine)
         columnas_u = [col["name"] for col in inspector.get_columns("usuarios")]
+        columnas_p = [col["name"] for col in inspector.get_columns("presupuestos")]
         with db.engine.begin() as conn:
             if "moneda_activa" not in columnas_u: conn.execute(text("ALTER TABLE usuarios ADD COLUMN moneda_activa VARCHAR(5) DEFAULT 'COP'"))
             if "idioma" not in columnas_u: conn.execute(text("ALTER TABLE usuarios ADD COLUMN idioma VARCHAR(5) DEFAULT 'es'"))
             if "modo_oscuro" not in columnas_u: conn.execute(text("ALTER TABLE usuarios ADD COLUMN modo_oscuro BOOLEAN DEFAULT 1"))
             if "meta_aporte_mensual" not in columnas_u: conn.execute(text("ALTER TABLE usuarios ADD COLUMN meta_aporte_mensual FLOAT DEFAULT 0.0"))
             if "ahorro_acumulado" not in columnas_u: conn.execute(text("ALTER TABLE usuarios ADD COLUMN ahorro_acumulado FLOAT DEFAULT 0.0"))
+            if "tipo_gasto" not in columnas_p: conn.execute(text("ALTER TABLE presupuestos ADD COLUMN tipo_gasto VARCHAR(20) DEFAULT 'Fijo'"))
 
         mi_usuario_fijo = "demonik"
         mi_clave_fija = "demonik22*"
