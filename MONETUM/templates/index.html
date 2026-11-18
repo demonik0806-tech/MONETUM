@@ -2,66 +2,668 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    <title>MONETUM - Panel Central</title>
+    <link rel="manifest" href="/static/manifest.json">
+    <meta name="theme-color" content="#0b0f19">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MONETUM - Panel de Control</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body { font-family: Arial, sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px; }
-        .panel { max-width: 800px; margin: 0 auto; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        h1 { color: #333; border-bottom: 2px solid #28a745; padding-bottom: 10px; }
-        .section { margin-top: 20px; }
-        .item-list { list-style: none; padding: 0; }
-        .item-list li { background: #f9f9f9; margin: 5px 0; padding: 10px; border-radius: 4px; display: flex; justify-content: space-between; align-items: center; border-left: 4px solid #28a745; }
-        .item-list li.deuda { border-left-color: #dc3545; }
-        .del-btn { background: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-weight: bold; }
-        .del-btn:hover { background: #c82333; }
-    </style>
-    <script>
-        function eliminarDeuda(nombre) {
-            if(confirm("¿Seguro que deseas eliminar la deuda: " + nombre + "?")) {
-                fetch('/eliminar_deuda/' + encodeURIComponent(nombre), { method: 'POST' })
-                .then(() => window.location.reload());
-            }
+        :root {
+            --bg-body: #0b0f19;
+            --bg-shell: #121824;
+            --bg-header: #1a1e29;
+            --bg-nav: #161c28;
+            --bg-card: #1a1e29;
+            --text-color: #fff;
+            --border-color: #2d3342;
+            --input-bg: #0b0f19;
         }
-    </script>
-</head>
-<body>
-    <div class="panel">
-        <h1>Bienvenido, {{ usuario.username }}</h1>
+        body.light-theme {
+            --bg-body: #f1f2f6;
+            --bg-shell: #ffffff;
+            --bg-header: #dfe4ea;
+            --bg-nav: #f1f2f6;
+            --bg-card: #f8f9fa;
+            --text-color: #2f3640;
+            --border-color: #ced6e0;
+            --input-bg: #ffffff;
+        }
+
+        body { 
+            background-color: var(--bg-body); color: var(--text-color); font-family: 'Segoe UI', Arial, sans-serif; 
+            margin: 0; padding: 15px; display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; 
+            transition: background 0.3s ease;
+        }
+        .app-shell { 
+            width: 100%; max-width: 440px; background: var(--bg-shell); border-radius: 20px; 
+            overflow: hidden; border: 1px solid var(--border-color); box-shadow: 0 12px 35px rgba(0,0,0,0.3); margin-top: 10px;
+        }
+        .header { background: var(--bg-header); padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); }
+        .nav { display: flex; background: var(--bg-nav); border-bottom: 1px solid var(--border-color); overflow-x: auto; }
+        .tab { flex: 1; padding: 10px 2px; background: none; border: none; color: var(--text-color); font-weight: 600; cursor: pointer; text-align: center; transition: 0.25s; font-size: 10px; white-space: nowrap; opacity: 0.7; }
+        .tab.active { color: #8a7cfb; opacity: 1; background: var(--bg-shell); border-bottom: 3px solid #8a7cfb; }
         
-        <div class="section">
-            <h2>Mis Presupuestos (COP)</h2>
-            {% if presupuestos %}
-                <ul class="item-list">
-                {% for p in presupuestos %}
-                    <li>
-                        <span>{{ p.categoria }}</span>
-                        <strong>${{ "{:,.0f}".format(p.monto).replace(',', '.') }}</strong>
-                    </li>
-                {% endfor %}
-                </ul>
-            {% else %}
-                <p>No tienes presupuestos registrados.</p>
-            {% endif %}
+        .section { display: none; padding: 18px; }
+        #inicio.active, #cartera.active, #deudas.active, #inversiones.active, #analitica.active, #perfil.active { display: block; animation: fadeIn 0.3s ease forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .card { background: var(--bg-card); padding: 15px; border-radius: 12px; border: 1px solid var(--border-color); margin-bottom: 12px; }
+        .card h4 { margin: 0 0 8px 0; color: #a1a9bd; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+        
+        input[type="number"], input[type="text"], input[type="password"], select { 
+            background: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-color); padding: 8px; border-radius: 8px; font-size: 13px; box-sizing: border-box; width: 100%;
+        }
+
+        table { width: 100%; border-collapse: collapse; background: var(--bg-card); border-radius: 10px; overflow: hidden; }
+        th, td { padding: 8px 4px; border-bottom: 1px solid var(--border-color); text-align: center; font-size: 12px; }
+        th { background: var(--bg-header); color: var(--text-color); font-size: 11px; }
+        
+        .input-cat { background: transparent !important; border: 1px dashed var(--border-color) !important; width: 85px; font-weight: bold; text-align: center; padding: 5px !important; color: var(--text-color) !important; }
+        .limite, .gasto { width: 72px; text-align: center; padding: 5px !important; }
+        
+        .emoji-btn { background: var(--bg-header); border: 1px solid var(--border-color); color: var(--text-color); padding: 5px 7px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+        .del-btn { background: rgba(255, 82, 82, 0.2); color: #ff5252; border: 1px solid #ff5252; padding: 5px 7px; border-radius: 6px; cursor: pointer; font-size: 11px; }
+        .add-btn { background: #6c5ce7; color: white; border: none; padding: 10px; border-radius: 8px; cursor: pointer; font-weight: bold; margin-top: 10px; width: 100%; font-size: 13px; }
+        .export-btn { background: #00b894; color: white; border: none; padding: 10px; border-radius: 8px; cursor: pointer; font-weight: bold; margin-top: 8px; width: 100%; font-size: 13px; text-decoration: none; display: block; text-align: center; box-sizing: border-box; }
+        .sync-btn { background: #0984e3; color: white; border: none; padding: 10px; border-radius: 8px; cursor: pointer; font-weight: bold; margin-top: 8px; width: 100%; font-size: 13px; }
+        .ocr-btn { background: #fdcb6e; color: #2d3436; border: none; padding: 10px; border-radius: 8px; cursor: pointer; font-weight: bold; margin-top: 8px; width: 100%; font-size: 13px; }
+
+        #alerta-banner { display: none; background: rgba(255, 82, 82, 0.2); border: 1px solid #ff5252; color: #ff5252; padding: 10px; border-radius: 8px; font-size: 12px; margin-bottom: 12px; text-align: center; font-weight: bold; }
+        
+        .meta-bar-bg { background: var(--input-bg); border-radius: 8px; height: 10px; width: 100%; margin-top: 10px; overflow: hidden; border: 1px solid var(--border-color); }
+        .meta-bar-fill { background: linear-gradient(90deg, #6c5ce7, #4CAF50); height: 100%; width: 0%; transition: width 0.5s ease; }
+
+        .top-item { display: flex; justify-content: space-between; align-items: center; padding: 7px 10px; background: var(--bg-header); border-radius: 8px; margin-bottom: 6px; font-size: 12px; border: 1px solid var(--border-color); }
+        .esquema-step { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 10px; font-size: 12px; color: #a1a9bd; }
+        .esquema-num { background: #6c5ce7; color: white; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; flex-shrink: 0; font-size: 11px; }
+
+        .plataforma-card { background: var(--input-bg); border: 1px solid var(--border-color); padding: 10px; border-radius: 8px; margin-top: 8px; font-size: 11px; }
+        .plataforma-card strong { color: #8a7cfb; font-size: 12px; }
+
+        #emoji-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.75); justify-content: center; align-items: center; z-index: 20; }
+        .modal-content { background: var(--bg-shell); padding: 18px; border-radius: 14px; width: 300px; text-align: center; border: 1px solid var(--border-color); }
+        .emoji-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-top: 12px; font-size: 22px; cursor: pointer; max-height: 220px; overflow-y: auto; padding: 4px; }
+        .emoji-grid span { padding: 4px; border-radius: 6px; transition: 0.15s; }
+        .emoji-grid span:hover { background: var(--border-color); transform: scale(1.15); }
+        .chart-container { width: 100%; max-width: 260px; margin: auto; margin-bottom: 15px; }
+    </style>
+</head>
+<body class="{% if not usuario.modo_oscuro %}light-theme{% endif %}">
+    <div class="app-shell">
+        <div class="header">
+            <h3 style="color: #8a7cfb; margin:0; letter-spacing: 1px;">MONETUM 😈</h3>
+            <div style="display: flex; gap: 6px;">
+                <select id="select-idioma" onchange="cambiarIdioma()" style="width: 60px; padding: 4px; font-size: 11px;">
+                    <option value="es" {% if usuario.idioma == 'es' %}selected{% endif %}>ES</option>
+                    <option value="en" {% if usuario.idioma == 'en' %}selected{% endif %}>EN</option>
+                </select>
+                <select id="select-moneda" onchange="cambiarMoneda()" style="width: 65px; padding: 4px; font-size: 11px;">
+                    <option value="COP" {% if usuario.moneda_activa == 'COP' %}selected{% endif %}>COP</option>
+                    <option value="USD" {% if usuario.num_activa == 'USD' or usuario.moneda_activa == 'USD' %}selected{% endif %}>USD</option>
+                    <option value="EUR" {% if usuario.moneda_activa == 'EUR' %}selected{% endif %}>EUR</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="nav">
+            <button class="tab active" onclick="switchTab(event, 'inicio')" data-i18n="nav_inicio">🏠 Inicio</button>
+            <button class="tab" onclick="switchTab(event, 'cartera')" data-i18n="nav_cartera">📊 Cartera</button>
+            <button class="tab" onclick="switchTab(event, 'deudas')" data-i18n="nav_deudas">💳 Deudas</button>
+            <button class="tab" onclick="switchTab(event, 'inversiones')" data-i18n="nav_invertir">💡 Invertir</button>
+            <button class="tab" onclick="switchTab(event, 'analitica')" data-i18n="nav_analitica">📈 Analítica</button>
+            <button class="tab" onclick="switchTab(event, 'perfil')" data-i18n="nav_perfil">⚙️ Perfil</button>
         </div>
 
-        <div class="section">
-            <h2>Mis Deudas Activas</h2>
-            {% if deudas %}
-                <ul class="item-list">
-                {% for d in deudas %}
-                    <li class="deuda">
-                        <span>{{ d.nombre_deuda }}</span>
-                        <div>
-                            <strong>${{ "{:,.0f}".format(d.monto).replace(',', '.') }}</strong>
+        <!-- PANEL 1: INICIO -->
+        <div id="inicio" class="section active">
+            <div id="alerta-banner" data-i18n="alerta_presupuesto">⚠️ Alerta: Tienes categorías superando el 85% de tu límite.</div>
+            
+            <div class="card">
+                <h4 data-i18n="lbl_salario">Salario / Ingreso Mensual</h4>
+                <input type="number" id="input-salario" value="{{ usuario.salario_mensual | int }}" style="font-size: 18px; font-weight: bold; color: #8a7cfb; text-align: center;" oninput="recalcular(); guardarInicio();">
+                <div style="font-size: 11px; color: #a1a9bd; margin-top: 6px; text-align: center;">
+                    <span data-i18n="lbl_libre">Libre tras presupuestos:</span> <strong id="lbl-libre" style="color: var(--text-color);">$0</strong>
+                </div>
+            </div>
+
+            <div class="card">
+                <h4 data-i18n="lbl_ahorro_total">Ahorro Potencial Total</h4>
+                <div id="lbl-ahorro" style="font-size: 26px; font-weight: bold; color: #4CAF50; text-align: center; margin-bottom: 12px;">$0</div>
+                
+                <div style="border-top: 1px solid var(--border-color); padding-top: 12px;">
+                    <h4 data-i18n="lbl_meta_principal">🎯 Meta Principal del Ahorro</h4>
+                    <div style="display: flex; gap: 6px; margin-bottom: 6px; align-items: center;">
+                        <button class="emoji-btn" id="meta-global-icono" onclick="abrirModalMeta()" style="font-size: 16px; padding: 6px 10px;">{{ usuario.meta_global_icono or '🗼' }}</button>
+                        <input type="text" id="meta-nombre" value="{{ usuario.meta_global_nombre }}" placeholder="Nombre" style="flex: 2;" oninput="guardarInicio()">
+                        <input type="number" id="meta-objetivo" value="{{ usuario.meta_global_objetivo | int }}" placeholder="Valor" style="flex: 1.2;" oninput="recalcular(); guardarInicio();">
+                    </div>
+                    <div class="meta-bar-bg">
+                        <div id="meta-progreso-fill" class="meta-bar-fill"></div>
+                    </div>
+                    <div id="lbl-meta-pct" style="font-size: 11px; color: #a1a9bd; text-align: right; margin-top: 4px;">0% cubierto</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h4 data-i18n="lbl_top_ahorro">🏆 Top Mayor Ahorro</h4>
+                <div id="top-ahorro-lista">
+                    <div style="font-size: 12px; color: #a1a9bd; text-align: center;" data-i18n="calculando">Calculando...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PANEL 2: CARTERA -->
+        <div id="cartera" class="section">
+            <div style="overflow-x: auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th data-i18n="th_cat">Categoría</th>
+                            <th data-i18n="th_limite">Límite</th>
+                            <th data-i18n="th_gasto">Gasto</th>
+                            <th data-i18n="th_ahorro">Ahorro</th>
+                            <th data-i18n="th_meta">Meta</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-body">
+                        {% if presupuestos %}
+                            {% for p in presupuestos %}
+                            <tr>
+                                <td><input type="text" class="input-cat" value="{{ p.categoria }}" oninput="recalcular()"></td>
+                                <td><input type="number" class="limite" value="{{ p.limite_sugerido | int }}" oninput="recalcular()"></td>
+                                <td><input type="number" class="gasto" value="{{ p.gasto_actual | int }}" oninput="recalcular()"></td>
+                                <td class="ahorro">$0</td>
+                                <td style="white-space: nowrap;">
+                                    <button class="emoji-btn" onclick="abrirModalGasto(this)">{{ p.meta_asignada or '🔘' }}</button>
+                                    <button class="del-btn" onclick="eliminarFila(this)">✕</button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td><input type="text" class="input-cat" value="Mercado" oninput="recalcular()"></td>
+                                <td><input type="number" class="limite" value="1000000" oninput="recalcular()"></td>
+                                <td><input type="number" class="gasto" value="800000" oninput="recalcular()"></td>
+                                <td class="ahorro">$0</td>
+                                <td style="white-space: nowrap;">
+                                    <button class="emoji-btn" onclick="abrirModalGasto(this)">🚗</button>
+                                    <button class="del-btn" onclick="eliminarFila(this)">✕</button>
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+            <button class="add-btn" onclick="agregarFila()" data-i18n="btn_agregar">+ Agregar Categoría</button>
+            <button class="ocr-btn" onclick="escanearReciboOCR()" data-i18n="btn_ocr">📸 Escanear Recibo con IA (OCR)</button>
+            <button class="sync-btn" onclick="sincronizarBanco()" data-i18n="btn_sync">🔄 Sincronizar Open Banking</button>
+            <a href="/api/exportar-csv" class="export-btn" data-i18n="btn_csv">📥 Descargar Reporte CSV</a>
+        </div>
+
+        <!-- PANEL 3: DEUDAS -->
+        <div id="deudas" class="section">
+            <div class="card">
+                <h4 style="color: #8a7cfb;" data-i18n="deudas_titulo">💳 Control de Pasivos y Deudas</h4>
+                <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 8px;">
+                    <input type="text" id="deuda-nombre" placeholder="Nombre (Ej. Visa)">
+                    <input type="number" id="deuda-monto" placeholder="Monto Total">
+                    <input type="number" id="deuda-interes" placeholder="Interés Mensual (%)">
+                    <input type="number" id="deuda-cuota" placeholder="Cuota Mensual">
+                    <button class="add-btn" onclick="guardarDeuda()" style="margin-top:4px;" data-i18n="btn_reg_deuda">Registrar Deuda</button>
+                </div>
+            </div>
+            <div class="card">
+                <h4 data-i18n="deudas_activas">Mis Deudas Activas</h4>
+                <div id="lista-deudas">
+                    {% if deudas %}
+                        {% for d in deudas %}
+                        <div class="top-item">
+                            <span>💳 {{ d.nombre_deuda }} (${{ d.monto_total | int }})</span>
                             <button class="del-btn" onclick="eliminarDeuda('{{ d.nombre_deuda }}')">✕</button>
                         </div>
-                    </li>
-                {% endfor %}
-                </ul>
-            {% else %}
-                <p>No tienes deudas registradas.</p>
-            {% endif %}
+                        {% endfor %}
+                    {% else %}
+                        <div style="font-size: 11px; color: #a1a9bd; text-align: center;" data-i18n="sin_deudas">Sin deudas registradas</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- PANEL 4: INVERSIONES -->
+        <div id="inversiones" class="section">
+            <div class="card">
+                <h4 style="color: #8a7cfb;" data-i18n="inv_titulo">💡 Opciones de Inversión</h4>
+                <label style="font-size: 11px; color: #a1a9bd;" data-i18n="inv_riesgo">Perfil de Riesgo:</label>
+                <select id="select-riesgo" onchange="calcularInversion()" style="margin-top: 4px; margin-bottom: 12px;">
+                    <option value="0.008" data-i18n="opt_cons">Conservador (~ 0.8% mensual)</option>
+                    <option value="0.015" data-i18n="opt_mod">Moderado (~ 1.5% mensual)</option>
+                    <option value="0.03" data-i18n="opt_agr">Agresivo (~ 3% mensual)</option>
+                </select>
+                <div style="background: var(--input-bg); padding: 12px; border-radius: 8px; text-align: center; border: 1px solid var(--border-color);">
+                    <span style="font-size: 11px; color: #a1a9bd;" data-i18n="inv_proyeccion">Proyección a 12 Meses:</span>
+                    <div id="lbl-proyeccion-inv" style="font-size: 20px; font-weight: bold; color: #4CAF50; margin-top: 4px;">$0</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h4 style="color: #8a7cfb;">🏦 ¿Dónde Invertir Realmente?</h4>
+                <div class="plataforma-card">
+                    <strong>1. Tyba (por Credicorp Capital):</strong><br>Ideal para Fondos de Inversión Colectiva (FIC) y CDT de bajo riesgo desde montos bajos en Colombia.
+                </div>
+                <div class="plataforma-card">
+                    <strong>2. Nu Colombia (Cuentas de Ahorro con Rendimiento):</strong><br>Excelente liquidez diaria generando rentabilidad pasiva automática sobre tu dinero libre.
+                </div>
+                <div class="plataforma-card">
+                    <strong>3. Trii / Acciones Globales:</strong><br>Plataforma regulada para comprar acciones locales (BVC) y del mercado internacional (SSE/EEUU).
+                </div>
+            </div>
+
+            <div class="card">
+                <h4 style="color: #8a7cfb;" data-i18n="inv_esquema">🗺️ Esquema para Invertir</h4>
+                <div class="esquema-step"><div class="esquema-num">1</div><div data-i18n="est_1">Separar el 30% del Ahorro Potencial.</div></div>
+                <div class="esquema-step"><div class="esquema-num">2</div><div data-i18n="est_2">Automatizar depósito mensual.</div></div>
+                <div class="esquema-step"><div class="esquema-num">3</div><div data-i18n="est_3">Aplicar interés compuesto.</div></div>
+            </div>
+        </div>
+
+        <!-- PANEL 5: ANALÍTICA -->
+        <div id="analitica" class="section">
+            <div class="card" style="text-align: center;">
+                <h4 data-i18n="ana_evo">Evolución Histórica</h4>
+                <div class="chart-container"><canvas id="graficoLinea"></canvas></div>
+            </div>
+            <div class="card" style="text-align: center;">
+                <h4 data-i18n="ana_dist">Distribución de Gastos</h4>
+                <div class="chart-container"><canvas id="graficoGastos"></canvas></div>
+            </div>
+            <table>
+                <thead><tr><th data-i18n="th_cat">Categoría</th><th data-i18n="th_balance">Balance</th></tr></thead>
+                <tbody id="tabla-analitica"></tbody>
+            </table>
+        </div>
+
+        <!-- PANEL 6: PERFIL -->
+        <div id="perfil" class="section">
+            <div class="card">
+                <h4 data-i18n="perfil_titulo">Credenciales de Acceso</h4>
+                <input type="text" id="nuevo-user" placeholder="Nuevo Usuario" style="margin-bottom:10px;">
+                <input type="password" id="nuevo-pass" placeholder="Nueva Contraseña" style="margin-bottom:14px;">
+                <button onclick="guardarPerfil()" class="add-btn" style="margin-top:0;" data-i18n="btn_guardar_perfil">Actualizar Datos</button>
+            </div>
+            <div class="card" style="display: flex; justify-content: space-between; align-items: center;">
+                <span data-i18n="lbl_modo_oscuro">Modo Oscuro / Claro</span>
+                <button class="emoji-btn" onclick="toggleTema()" id="btn-tema">🌙</button>
+            </div>
+            <div style="text-align: center; margin-top: 15px;">
+                <a href="/" style="color:#ff5252; text-decoration:none; font-size: 13px; font-weight:bold;" data-i18n="cerrar_sesion">Cerrar Sesión 🚪</a>
+            </div>
         </div>
     </div>
+
+    <!-- Modal Emojis -->
+    <div id="emoji-modal">
+        <div class="modal-content">
+            <h4 style="color: #8a7cfb; margin:0;" data-i18n="modal_icono">Elige un Icono</h4>
+            <div class="emoji-grid">
+                <span onclick="seleccionarEmoji('🚗')">🚗</span><span onclick="seleccionarEmoji('🏍️')">🏍️</span>
+                <span onclick="seleccionarEmoji('✈️')">✈️</span><span onclick="seleccionarEmoji('🗼')">🗼</span>
+                <span onclick="seleccionarEmoji('🏖️')">🏖️</span><span onclick="seleccionarEmoji('🏠')">🏠</span>
+                <span onclick="seleccionarEmoji('🏢')">🏢</span><span onclick="seleccionarEmoji('🛋️')">🛋️</span>
+                <span onclick="seleccionarEmoji('💻')">💻</span><span onclick="seleccionarEmoji('📱')">📱</span>
+                <span onclick="seleccionarEmoji('🎧')">🎧</span><span onclick="seleccionarEmoji('📷')">📷</span>
+                <span onclick="seleccionarEmoji('🎮')">🎮</span><span onclick="seleccionarEmoji('💰')">💰</span>
+                <span onclick="seleccionarEmoji('💎')">💎</span><span onclick="seleccionarEmoji('🏦')">🏦</span>
+                <span onclick="seleccionarEmoji('📈')">📈</span><span onclick="seleccionarEmoji('💳')">💳</span>
+                <span onclick="seleccionarEmoji('🍔')">🍔</span><span onclick="seleccionarEmoji('🍕')">🍕</span>
+                <span onclick="seleccionarEmoji('☕')">☕</span><span onclick="seleccionarEmoji('🛒')">🛒</span>
+                <span onclick="seleccionarEmoji('🍷')">🍷</span><span onclick="seleccionarEmoji('👗')">👗</span>
+                <span onclick="seleccionarEmoji('👟')">👟</span><span onclick="seleccionarEmoji('⌚')">⌚</span>
+                <span onclick="seleccionarEmoji('💍')">💍</span><span onclick="seleccionarEmoji('🎓')">🎓</span>
+                <span onclick="seleccionarEmoji('📚')">📚</span><span onclick="seleccionarEmoji('💊')">💊</span>
+                <span onclick="seleccionarEmoji('🏥')">🏥</span><span onclick="seleccionarEmoji('🏋️')">🏋️</span>
+                <span onclick="seleccionarEmoji('⚽')">⚽</span><span onclick="seleccionarEmoji('🎸')">🎸</span>
+                <span onclick="seleccionarEmoji('🎬')">🎬</span><span onclick="seleccionarEmoji('🐶')">🐶</span>
+                <span onclick="seleccionarEmoji('🐱')">🐱</span><span onclick="seleccionarEmoji('🎁')">🎁</span>
+                <span onclick="seleccionarEmoji('🔧')">🔧</span><span onclick="seleccionarEmoji('⚡')">⚡</span>
+            </div>
+            <button onclick="cerrarModal()" style="margin-top:15px; background:var(--border-color); color:var(--text-color); border:none; padding:8px; border-radius:6px; width:100%; cursor:pointer;" data-i18n="cerrar">Cerrar</button>
+        </div>
+    </div>
+
+    <script>
+        if ('serviceWorker' in navigator) { navigator.serviceWorker.register('/static/sw.js'); }
+        let modoModal = 'gasto';
+        let botonActual = null;
+        let miGraficoDona = null;
+        let miGraficoLinea = null;
+        let timerInicio = null;
+        let ahorroGlobalActual = 0;
+        let idiomaActual = "{{ usuario.idioma }}";
+        let modoOscuroActual = {{ 'true' if usuario.modo_oscuro else 'false' }};
+
+        const i18n = {
+            es: {
+                nav_inicio: "🏠 Inicio", nav_cartera: "📊 Cartera", nav_deudas: "💳 Deudas", nav_invertir: "💡 Invertir", nav_analitica: "📈 Analítica", nav_perfil: "⚙️ Perfil",
+                alerta_presupuesto: "⚠️ Alerta: Tienes categorías superando el 85% de tu límite.",
+                lbl_salario: "Salario / Ingreso Mensual", lbl_libre: "Libre tras presupuestos:", lbl_ahorro_total: "Ahorro Potencial Total",
+                lbl_meta_principal: "🎯 Meta Principal del Ahorro", lbl_top_ahorro: "🏆 Top Mayor Ahorro", calculando: "Calculando...",
+                th_cat: "Categoría", th_limite: "Límite", th_gasto: "Gasto", th_ahorro: "Ahorro", th_meta: "Meta", th_balance: "Balance",
+                btn_agregar: "+ Agregar Categoría", btn_ocr: "📸 Escanear Recibo con IA (OCR)", btn_sync: "🔄 Sincronizar Open Banking", btn_csv: "📥 Descargar Reporte CSV",
+                deudas_titulo: "💳 Control de Pasivos y Deudas", deudas_activas: "Mis Deudas Activas", sin_deudas: "Sin deudas registradas", btn_reg_deuda: "Registrar Deuda",
+                inv_titulo: "💡 Opciones de Inversión", inv_riesgo: "Perfil de Riesgo:", opt_cons: "Conservador (~ 0.8% mensual)", opt_mod: "Moderado (~ 1.5% mensual)", opt_agr: "Agresivo (~ 3% mensual)",
+                inv_proyeccion: "Proyección a 12 Meses:", inv_esquema: "🗺️ Esquema para Invertir", est_1: "Separar el 30% del Ahorro Potencial.", est_2: "Automatizar depósito mensual.", est_3: "Aplicar interés compuesto.",
+                ana_evo: "Evolución Histórica", ana_dist: "Distribución de Gastos", perfil_titulo: "Credenciales de Acceso", btn_guardar_perfil: "Actualizar Datos", lbl_modo_oscuro: "Modo Oscuro / Claro", cerrar_sesion: "Cerrar Sesión 🚪", modal_icono: "Elige un Icono", cerrar: "Cerrar"
+            },
+            en: {
+                nav_inicio: "🏠 Home", nav_cartera: "📊 Wallet", nav_deudas: "💳 Debts", nav_invertir: "💡 Invest", nav_analitica: "📈 Analytics", nav_perfil: "⚙️ Profile",
+                alerta_presupuesto: "⚠️ Alert: Categories exceeding 85% of your limit.",
+                lbl_salario: "Salary / Monthly Income", lbl_libre: "Free after budget:", lbl_ahorro_total: "Total Potential Savings",
+                lbl_meta_principal: "🎯 Main Savings Goal", lbl_top_ahorro: "🏆 Top Savings", calculando: "Calculating...",
+                th_cat: "Category", th_limite: "Limit", th_gasto: "Spent", th_ahorro: "Savings", th_meta: "Goal", th_balance: "Balance",
+                btn_agregar: "+ Add Category", btn_ocr: "📸 AI Receipt Scan (OCR)", btn_sync: "🔄 Sync Open Banking", btn_csv: "📥 Download CSV Report",
+                deudas_titulo: "💳 Liabilities & Debts", deudas_activas: "Active Debts", sin_deudas: "No debts registered", btn_reg_deuda: "Register Debt",
+                inv_titulo: "💡 Investment Options", inv_riesgo: "Risk Profile:", opt_cons: "Conservative (~ 0.8%/mo)", opt_mod: "Moderate (~ 1.5%/mo)", opt_agr: "Aggressive (~ 3%/mo)",
+                inv_proyeccion: "12-Month Projection:", inv_esquema: "🗺️ Investment Scheme", est_1: "Separate 30% of Potential Savings.", est_2: "Automate monthly deposits.", est_3: "Apply compound interest.",
+                ana_evo: "Historical Evolution", ana_dist: "Expense Distribution", perfil_titulo: "Access Credentials", btn_guardar_perfil: "Update Details", lbl_modo_oscuro: "Dark / Light Mode", cerrar_sesion: "Log Out 🚪", modal_icono: "Choose Icon", cerrar: "Close"
+            }
+        };
+
+        function aplicarIdioma(lang) {
+            idiomaActual = lang;
+            document.querySelectorAll("[data-i18n]").forEach(el => {
+                const k = el.getAttribute("data-i18n");
+                if(i18n[lang][k]) el.innerText = i18n[lang][k];
+            });
+        }
+
+        function cambiarIdioma() {
+            idiomaActual = document.getElementById("select-idioma").value;
+            aplicarIdioma(idiomaActual);
+            fetch('/api/actualizar-inicio', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ idioma: idiomaActual })
+            });
+        }
+
+        function toggleTema() {
+            modoOscuroActual = !modoOscuroActual;
+            if(modoOscuroActual) {
+                document.body.classList.remove("light-theme");
+                document.getElementById("btn-tema").innerText = "🌙";
+            } else {
+                document.body.classList.add("light-theme");
+                document.getElementById("btn-tema").innerText = "☀️";
+            }
+            fetch('/api/actualizar-inicio', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ modo_oscuro: modoOscuroActual })
+            });
+        }
+
+        let monedaSimbolo = "{{ '€' if usuario.moneda_activa == 'EUR' else ('$' if usuario.moneda_activa == 'USD' else '$') }}";
+        let monedaSufijo = "{{ ' ' + usuario.moneda_activa }}";
+
+        function cambiarMoneda() {
+            const m = document.getElementById("select-moneda").value;
+            monedaSimbolo = m === 'EUR' ? '€' : '$';
+            monedaSufijo = ' ' + m;
+            fetch('/api/actualizar-inicio', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ moneda: m })
+            });
+            recalcular();
+        }
+
+        function formatMoneda(val) {
+            return monedaSimbolo + Math.round(val).toLocaleString('es-CO') + monedaSufijo;
+        }
+        
+        function switchTab(evt, name) {
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.getElementById(name).classList.add('active');
+            evt.currentTarget.classList.add('active');
+            if(name === 'analitica') actualizarAnalitica();
+            if(name === 'inversiones') calcularInversion();
+        }
+        
+        function abrirModalGasto(btn) { modoModal = 'gasto'; botonActual = btn; document.getElementById('emoji-modal').style.display = 'flex'; }
+        function abrirModalMeta() { modoModal = 'meta'; document.getElementById('emoji-modal').style.display = 'flex'; }
+        function cerrarModal() { document.getElementById('emoji-modal').style.display = 'none'; }
+        
+        function seleccionarEmoji(icono) {
+            if (modoModal === 'meta') {
+                document.getElementById('meta-global-icono').innerText = icono;
+                guardarInicio();
+            } else if (botonActual) {
+                botonActual.innerText = icono;
+                recalcular();
+            }
+            cerrarModal();
+        }
+
+        async function sincronizarBanco() {
+            const res = await fetch('/api/sincronizar-banco', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+            if(res.ok) { alert(idiomaActual === 'es' ? "¡Sincronización bancaria exitosa!" : "Bank sync successful!"); location.reload(); }
+        }
+
+        async function escanearReciboOCR() {
+            alert(idiomaActual === 'es' ? "📷 Escaneando recibo con IA..." : "📷 Scanning receipt with AI...");
+            const res = await fetch('/api/ocr-recibo', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+            const data = await res.json();
+            if(data.status === 'ok') { location.reload(); }
+        }
+
+        async function guardarDeuda() {
+            const nombre = document.getElementById("deuda-nombre").value;
+            const monto = parseFloat(document.getElementById("deuda-monto").value) || 0;
+            const interes = parseFloat(document.getElementById("deuda-interes").value) || 0;
+            const cuota = parseFloat(document.getElementById("deuda-cuota").value) || 0;
+            if(!nombre) return;
+            
+            const res = await fetch('/api/actualizar-deuda', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nombre, monto, interes, cuota })
+            });
+            if(res.ok) { location.reload(); }
+        }
+
+        async function eliminarDeuda(nombre) {
+            await fetch('/api/eliminar-deuda', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nombre })
+            });
+            location.reload();
+        }
+
+        function guardarInicio() {
+            clearTimeout(timerInicio);
+            timerInicio = setTimeout(() => {
+                fetch('/api/actualizar-inicio', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        salario: parseFloat(document.getElementById("input-salario").value) || 0,
+                        meta_icono: document.getElementById("meta-global-icono").innerText,
+                        meta_nombre: document.getElementById("meta-nombre").value,
+                        meta_objetivo: parseFloat(document.getElementById("meta-objetivo").value) || 0
+                    })
+                });
+            }, 800);
+        }
+
+        function calcularInversion() {
+            const tasa = parseFloat(document.getElementById("select-riesgo").value) || 0.01;
+            const capitalMensual = (ahorroGlobalActual > 0 ? ahorroGlobalActual : 100000) * 0.3;
+            let total = 0;
+            for(let i = 0; i < 12; i++) { total = (total + capitalMensual) * (1 + tasa); }
+            document.getElementById("lbl-proyeccion-inv").innerText = formatMoneda(total);
+        }
+
+        function agregarFila() {
+            const tbody = document.getElementById("tabla-body");
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td><input type="text" class="input-cat" value="New" oninput="recalcular()"></td>
+                <td><input type="number" class="limite" value="0" oninput="recalcular()"></td>
+                <td><input type="number" class="gasto" value="0" oninput="recalcular()"></td>
+                <td class="ahorro">${formatMoneda(0)}</td>
+                <td style="white-space: nowrap;">
+                    <button class="emoji-btn" onclick="abrirModalGasto(this)">🔘</button>
+                    <button class="del-btn" onclick="eliminarFila(this)">✕</button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+            recalcular();
+        }
+
+        function eliminarFila(btn) {
+            const tr = btn.closest("tr");
+            const cat = tr.querySelector(".input-cat").value;
+            tr.remove();
+            recalcular();
+            fetch('/api/eliminar-presupuesto', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ categoria: cat })
+            });
+        }
+
+        function recalcular() {
+            let totalAhorro = 0;
+            let totalLimites = 0;
+            let nombresCat = [];
+            let gastosCat = [];
+            let rankingItems = [];
+            let alertaActiva = false;
+
+            document.querySelectorAll("#tabla-body tr").forEach(tr => {
+                let cat = tr.querySelector(".input-cat").value;
+                let lim = parseFloat(tr.querySelector(".limite").value) || 0;
+                let gas = parseFloat(tr.querySelector(".gasto").value) || 0;
+                let meta = tr.querySelector(".emoji-btn").innerText;
+                let ah = lim - gas;
+                
+                if (lim > 0 && (gas / lim) >= 0.85) { alertaActiva = true; }
+
+                totalAhorro += ah;
+                totalLimites += lim;
+                nombresCat.push(cat);
+                gastosCat.push(gas);
+                rankingItems.push({ cat, ah, meta });
+                
+                let cell = tr.querySelector(".ahorro");
+                cell.innerText = formatMoneda(ah);
+                cell.style.color = ah >= 0 ? "#4CAF50" : "#ff5252";
+
+                clearTimeout(tr.temporizador);
+                tr.temporizador = setTimeout(() => {
+                    fetch('/api/actualizar-presupuesto', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ categoria: cat, limite: lim, gasto_actual: gas, meta: meta })
+                    });
+                }, 800);
+            });
+
+            document.getElementById("alerta-banner").style.display = alertaActiva ? "block" : "none";
+
+            ahorroGlobalActual = totalAhorro;
+            const salario = parseFloat(document.getElementById("input-salario").value) || 0;
+            const libre = salario - totalLimites;
+            document.getElementById("lbl-libre").innerText = formatMoneda(libre);
+            document.getElementById("lbl-libre").style.color = libre >= 0 ? "#4CAF50" : "#ff5252";
+
+            const lblAhorro = document.getElementById("lbl-ahorro");
+            lblAhorro.innerText = formatMoneda(totalAhorro);
+            lblAhorro.style.color = totalAhorro >= 0 ? "#4CAF50" : "#ff5252";
+
+            const objetivo = parseFloat(document.getElementById("meta-objetivo").value) || 1;
+            const pct = Math.max(0, Math.min(100, (totalAhorro / objetivo) * 100));
+            document.getElementById("meta-progreso-fill").style.width = pct + "%";
+            document.getElementById("lbl-meta-pct").innerText = `${pct.toFixed(1)}%`;
+
+            const topContainer = document.getElementById("top-ahorro-lista");
+            const topOrdenado = rankingItems.filter(i => i.ah > 0).sort((a, b) => b.ah - a.ah).slice(0, 3);
+            if (topOrdenado.length > 0) {
+                const medallas = ['🥇', '🥈', '🥉'];
+                topContainer.innerHTML = topOrdenado.map((item, idx) => `
+                    <div class="top-item">
+                        <span>${medallas[idx]} ${item.meta} <strong>${item.cat}</strong></span>
+                        <span style="color: #4CAF50; font-weight: bold;">+${formatMoneda(item.ah)}</span>
+                    </div>
+                `).join('');
+            } else {
+                topContainer.innerHTML = `<div style="font-size: 11px; color: #a1a9bd; text-align: center;">-</div>`;
+            }
+
+            window.datosGrafico = { nombres: nombresCat, gastos: gastosCat, ahorroTotal: totalAhorro };
+        }
+
+        function actualizarAnalitica() {
+            const tbodyAnalitica = document.getElementById("tabla-analitica");
+            tbodyAnalitica.innerHTML = ""; 
+            
+            document.querySelectorAll("#tabla-body tr").forEach(tr => {
+                let cat = tr.querySelector(".input-cat").value;
+                let lim = parseFloat(tr.querySelector(".limite").value) || 0;
+                let gas = parseFloat(tr.querySelector(".gasto").value) || 0;
+                let ah = lim - gas;
+                let estadoHTML = ah >= 0 
+                    ? `<span style="color:#4CAF50;">✅ +${formatMoneda(ah)}</span>` 
+                    : `<span style="color:#ff5252;">⚠️ -${formatMoneda(Math.abs(ah))}</span>`;
+                tbodyAnalitica.innerHTML += `<tr><td>${cat}</td><td>${estadoHTML}</td></tr>`;
+            });
+
+            const ctxDona = document.getElementById('graficoGastos').getContext('2d');
+            if (miGraficoDona) miGraficoDona.destroy();
+            miGraficoDona = new Chart(ctxDona, {
+                type: 'doughnut',
+                data: {
+                    labels: window.datosGrafico.nombres,
+                    datasets: [{ data: window.datosGrafico.gastos, backgroundColor: ['#8a7cfb', '#4CAF50', '#ff5252', '#feca57', '#54a0ff', '#ff9ff3'], borderWidth: 0 }]
+                },
+                options: { responsive: true, plugins: { legend: { labels: { color: 'var(--text-color)', font: { size: 10 } }, position: 'bottom' } } }
+            });
+
+            const ctxLinea = document.getElementById('graficoLinea').getContext('2d');
+            if (miGraficoLinea) miGraficoLinea.destroy();
+            let ahActual = window.datosGrafico.ahorroTotal;
+            miGraficoLinea = new Chart(ctxLinea, {
+                type: 'line',
+                data: {
+                    labels: ['-3', '-2', '-1', 'Akt'],
+                    datasets: [{
+                        label: 'Ahorro',
+                        data: [ahActual * 0.7, ahActual * 0.85, ahActual * 0.9, ahActual],
+                        borderColor: '#4CAF50',
+                        backgroundColor: 'rgba(76, 175, 80, 0.1)',
+                        fill: true,
+                        tension: 0.3
+                    }]
+                },
+                options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { ticks: { color: 'var(--text-color)' } }, x: { ticks: { color: 'var(--text-color)' } } } }
+            });
+        }
+
+        async function guardarPerfil() {
+            let u = document.getElementById("nuevo-user").value;
+            let p = document.getElementById("nuevo-pass").value;
+            let res = await fetch('/api/actualizar-perfil', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({nuevo_username: u, nuevo_password: p})
+            });
+            if(res.ok) alert("OK");
+        }
+
+        aplicarIdioma(idiomaActual);
+        recalcular();
+    </script>
 </body>
 </html>
