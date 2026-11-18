@@ -11,7 +11,6 @@ app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "monetum_prod_key_987654321_xyz")
 csrf = CSRFProtect(app)
 
-# Corrección de conexión para evitar el CRASH en Railway con Neon
 db_url = os.environ.get("DATABASE_URL", "sqlite:///monetum.db")
 if db_url.startswith("postgres://"):
     db_url = db_url.replace("postgres://", "postgresql+psycopg2://", 1)
@@ -31,7 +30,7 @@ class Usuario(db.Model):
     two_fa_enabled = db.Column(db.Boolean, default=False)
     salario_mensual = db.Column(db.Float, default=2500000.0)
     meta_global_icono = db.Column(db.String(10), default="🗼")
-    meta_global_nombre = db.Column(db.String(100), default="Viaje a Japón")
+    meta_global_nombre = db.Column(db.String(100), default="Mi Proyecto")
     meta_global_objetivo = db.Column(db.Float, default=1000000.0)
     meta_aporte_mensual = db.Column(db.Float, default=0.0)
     ahorro_acumulado = db.Column(db.Float, default=0.0)
@@ -74,11 +73,9 @@ def procesar_login():
     data = request.json
     username = data.get("username", "").strip()
     password = data.get("password", "").strip()
-
     usuario = Usuario.query.filter_by(username=username).first()
-    if not usuario:
-        return jsonify({"success": False, "error": "Usuario no encontrado"}), 401
-
+    if not usuario: return jsonify({"success": False, "error": "Usuario no encontrado"}), 401
+    
     password_valido = False
     if usuario.password.startswith(("scrypt:", "pbkdf2:")):
         password_valido = check_password_hash(usuario.password, password)
@@ -87,47 +84,45 @@ def procesar_login():
         usuario.password = generate_password_hash(password)
         db.session.commit()
 
-    if not password_valido:
-        return jsonify({"success": False, "error": "Usuario o contraseña incorrectos"}), 401
-
+    if not password_valido: return jsonify({"success": False, "error": "Contraseña incorrecta"}), 401
     session["usuario"] = usuario.username
     return jsonify({"success": True, "redirect": url_for("panel_principal")})
 
 @app.route("/panel")
 def panel_principal():
-    if "usuario" not in session:
-        return redirect(url_for("login"))
+    if "usuario" not in session: return redirect(url_for("login"))
     usuario = Usuario.query.filter_by(username=session["usuario"]).first()
     presupuestos = Presupuesto.query.filter_by(usuario_id=usuario.id).all()
     deudas = Deuda.query.filter_by(usuario_id=usuario.id).all()
     return render_template("index.html", usuario=usuario, presupuestos=presupuestos, deudas=deudas)
 
-@app.route("/api/sincronizar-banco", methods=["POST"])
+@app.route("/api/actualizar-presupuesto", methods=["POST"])
 @csrf.exempt
-def sincronizar_banco():
+def actualizar_presupuesto():
     if "usuario" not in session: return jsonify({"error": "No autorizado"}), 403
+    datos = request.json
     usuario = Usuario.query.filter_by(username=session["usuario"]).first()
-    movimientos = [{"categoria": "Mercado", "monto": 850000}, {"categoria": "Transporte", "monto": 180000}]
-    for mov in movimientos:
-        p = Presupuesto.query.filter_by(usuario_id=usuario.id, categoria=mov["categoria"]).first()
-        if p: p.gasto_actual = mov["monto"]
-    db.session.commit()
-    return jsonify({"status": "ok", "mensaje": "Sincronización bancaria exitosa"})
-
-@app.route("/api/ocr-recibo", methods=["POST"])
-@csrf.exempt
-def ocr_recibo():
-    if "usuario" not in session: return jsonify({"error": "No autorizado"}), 403
-    usuario = Usuario.query.filter_by(username=session["usuario"]).first()
-    gasto_detectado = 125000
-    categoria_detectada = "Supermercado"
-    p = Presupuesto.query.filter_by(usuario_id=usuario.id, categoria=categoria_detectada).first()
+    p = Presupuesto.query.filter_by(usuario_id=usuario.id, categoria=datos["categoria"]).first()
     if p:
-        p.gasto_actual += gasto_detectado
+        p.limite_sugerido = datos["limite"]
+        p.gasto_actual = datos["gasto_actual"]
+        p.meta_asignada = datos["meta"]
     else:
-        db.session.add(Presupuesto(usuario_id=usuario.id, categoria=categoria_detectada, limite_sugerido=500000, gasto_actual=gasto_detectado, meta_asignada="🛒"))
+        db.session.add(Presupuesto(usuario_id=usuario.id, categoria=datos["categoria"], limite_sugerido=datos["limite"], gasto_actual=datos["gasto_actual"], meta_asignada=datos["meta"]))
     db.session.commit()
-    return jsonify({"status": "ok", "categoria": categoria_detectada, "monto": gasto_detectado})
+    return jsonify({"status": "ok"})
+
+@app.route("/api/eliminar-presupuesto", methods=["POST"])
+@csrf.exempt
+def eliminar_presupuesto():
+    if "usuario" not in session: return jsonify({"error": "No autorizado"}), 403
+    datos = request.json
+    usuario = Usuario.query.filter_by(username=session["usuario"]).first()
+    p = Presupuesto.query.filter_by(usuario_id=usuario.id, categoria=datos["categoria"]).first()
+    if p:
+        db.session.delete(p)
+        db.session.commit()
+    return jsonify({"status": "ok"})
 
 @app.route("/api/actualizar-deuda", methods=["POST"])
 @csrf.exempt
@@ -168,18 +163,6 @@ def depositar_meta():
         db.session.commit()
     return jsonify({"status": "ok", "nuevo_acumulado": usuario.ahorro_acumulado})
 
-@app.route("/api/exportar-csv")
-def exportar_csv():
-    if "usuario" not in session: return redirect(url_for("login"))
-    usuario = Usuario.query.filter_by(username=session["usuario"]).first()
-    presupuestos = Presupuesto.query.filter_by(usuario_id=usuario.id).all()
-    output = StringIO()
-    output.write("Categoria,Limite Sugerido,Gasto Actual,Ahorro Potencial,Meta\n")
-    for p in presupuestos:
-        ahorro = p.limite_sugerido - p.gasto_actual
-        output.write(f'"{p.categoria}",{p.limite_sugerido},{p.gasto_actual},{ahorro},"{p.meta_asignada}"\n')
-    return Response(output.getvalue(), mimetype="text/csv", headers={"Content-Disposition": "attachment;filename=Reporte_Monetum.csv"})
-
 @app.route("/api/actualizar-inicio", methods=["POST"])
 @csrf.exempt
 def actualizar_inicio():
@@ -203,7 +186,6 @@ def actualizar_perfil():
     if "usuario" not in session: return jsonify({"error": "No autorizado"}), 403
     datos = request.json
     usuario = Usuario.query.filter_by(username=session["usuario"]).first()
-    
     cambio_credenciales = False
     if datos.get("nuevo_username") and datos["nuevo_username"] != usuario.username:
         usuario.username = datos["nuevo_username"]
@@ -211,9 +193,7 @@ def actualizar_perfil():
     if datos.get("nuevo_password"):
         usuario.password = generate_password_hash(datos["nuevo_password"])
         cambio_credenciales = True
-        
     db.session.commit()
-    
     if cambio_credenciales:
         session.pop("usuario", None)
         return jsonify({"status": "ok", "redirect": url_for("login")})
@@ -225,20 +205,14 @@ def inicializar_bd():
         inspector = inspect(db.engine)
         columnas_u = [col["name"] for col in inspector.get_columns("usuarios")]
         with db.engine.begin() as conn:
-            if "moneda_activa" not in columnas_u:
-                conn.execute(text("ALTER TABLE usuarios ADD COLUMN moneda_activa VARCHAR(5) DEFAULT 'COP'"))
-            if "idioma" not in columnas_u:
-                conn.execute(text("ALTER TABLE usuarios ADD COLUMN idioma VARCHAR(5) DEFAULT 'es'"))
-            if "modo_oscuro" not in columnas_u:
-                conn.execute(text("ALTER TABLE usuarios ADD COLUMN modo_oscuro BOOLEAN DEFAULT 1"))
-            if "meta_aporte_mensual" not in columnas_u:
-                conn.execute(text("ALTER TABLE usuarios ADD COLUMN meta_aporte_mensual FLOAT DEFAULT 0.0"))
-            if "ahorro_acumulado" not in columnas_u:
-                conn.execute(text("ALTER TABLE usuarios ADD COLUMN ahorro_acumulado FLOAT DEFAULT 0.0"))
+            if "moneda_activa" not in columnas_u: conn.execute(text("ALTER TABLE usuarios ADD COLUMN moneda_activa VARCHAR(5) DEFAULT 'COP'"))
+            if "idioma" not in columnas_u: conn.execute(text("ALTER TABLE usuarios ADD COLUMN idioma VARCHAR(5) DEFAULT 'es'"))
+            if "modo_oscuro" not in columnas_u: conn.execute(text("ALTER TABLE usuarios ADD COLUMN modo_oscuro BOOLEAN DEFAULT 1"))
+            if "meta_aporte_mensual" not in columnas_u: conn.execute(text("ALTER TABLE usuarios ADD COLUMN meta_aporte_mensual FLOAT DEFAULT 0.0"))
+            if "ahorro_acumulado" not in columnas_u: conn.execute(text("ALTER TABLE usuarios ADD COLUMN ahorro_acumulado FLOAT DEFAULT 0.0"))
 
         mi_usuario_fijo = "demonik"
         mi_clave_fija = "demonik22*"
-
         admin = Usuario.query.filter_by(username=mi_usuario_fijo).first()
         if not admin:
             db.session.add(Usuario(username=mi_usuario_fijo, password=generate_password_hash(mi_clave_fija)))
