@@ -26,6 +26,7 @@ class Usuario(db.Model):
     meta_global_icono = db.Column(db.String(10), default="🗼")
     meta_global_nombre = db.Column(db.String(100), default="Viaje a Japón")
     meta_global_objetivo = db.Column(db.Float, default=1000000.0)
+    meta_aporte_mensual = db.Column(db.Float, default=0.0)
     moneda_activa = db.Column(db.String(5), default="COP")
     idioma = db.Column(db.String(5), default="es")
     modo_oscuro = db.Column(db.Boolean, default=True)
@@ -170,6 +171,7 @@ def actualizar_inicio():
     if "meta_icono" in datos: usuario.meta_global_icono = datos["meta_icono"]
     if "meta_nombre" in datos: usuario.meta_global_nombre = datos["meta_nombre"]
     if "meta_objetivo" in datos: usuario.meta_global_objetivo = float(datos["meta_objetivo"])
+    if "meta_aporte" in datos: usuario.meta_aporte_mensual = float(datos["meta_aporte"])
     if "moneda" in datos: usuario.moneda_activa = datos["moneda"]
     if "idioma" in datos: usuario.idioma = datos["idioma"]
     if "modo_oscuro" in datos: usuario.modo_oscuro = bool(datos["modo_oscuro"])
@@ -182,43 +184,23 @@ def actualizar_perfil():
     if "usuario" not in session: return jsonify({"error": "No autorizado"}), 403
     datos = request.json
     usuario = Usuario.query.filter_by(username=session["usuario"]).first()
-    if datos.get("nuevo_username"):
+    
+    cambio_credenciales = False
+    
+    if datos.get("nuevo_username") and datos["nuevo_username"] != usuario.username:
         usuario.username = datos["nuevo_username"]
-        session["usuario"] = datos["nuevo_username"]
+        cambio_credenciales = True
+        
     if datos.get("nuevo_password"):
         usuario.password = generate_password_hash(datos["nuevo_password"])
+        cambio_credenciales = True
+        
     db.session.commit()
-    return jsonify({"status": "ok"})
-
-@app.route("/api/actualizar-presupuesto", methods=["POST"])
-@csrf.exempt
-def actualizar_presupuesto():
-    if "usuario" not in session: return jsonify({"error": "No autorizado"}), 403
-    datos = request.json
-    usuario = Usuario.query.filter_by(username=session["usuario"]).first()
-    p = Presupuesto.query.filter_by(usuario_id=usuario.id, categoria=datos["categoria"]).first()
-    if p:
-        p.gasto_actual = datos["gasto_actual"]
-        p.limite_sugerido = datos["limite"]
-        p.meta_asignada = datos["meta"]
-    else:
-        db.session.add(Presupuesto(
-            usuario_id=usuario.id, categoria=datos["categoria"],
-            limite_sugerido=datos["limite"], gasto_actual=datos["gasto_actual"], meta_asignada=datos["meta"]
-        ))
-    db.session.commit()
-    return jsonify({"status": "ok"})
-
-@app.route("/api/eliminar-presupuesto", methods=["POST"])
-@csrf.exempt
-def eliminar_presupuesto():
-    if "usuario" not in session: return jsonify({"error": "No autorizado"}), 403
-    datos = request.json
-    usuario = Usuario.query.filter_by(username=session["usuario"]).first()
-    p = Presupuesto.query.filter_by(usuario_id=usuario.id, categoria=datos["categoria"]).first()
-    if p:
-        db.session.delete(p)
-        db.session.commit()
+    
+    if cambio_credenciales:
+        session.pop("usuario", None)
+        return jsonify({"status": "ok", "redirect": url_for("login")})
+        
     return jsonify({"status": "ok"})
 
 def inicializar_bd():
@@ -233,17 +215,23 @@ def inicializar_bd():
                 conn.execute(text("ALTER TABLE usuarios ADD COLUMN idioma VARCHAR(5) DEFAULT 'es'"))
             if "modo_oscuro" not in columnas_u:
                 conn.execute(text("ALTER TABLE usuarios ADD COLUMN modo_oscuro BOOLEAN DEFAULT 1"))
+            if "meta_aporte_mensual" not in columnas_u:
+                conn.execute(text("ALTER TABLE usuarios ADD COLUMN meta_aporte_mensual FLOAT DEFAULT 0.0"))
 
-        admin = Usuario.query.filter_by(username="monetum_admin").first()
+        # --- TUS CREDENCIALES FIJAS Y PERMANENTES ---
+        mi_usuario_fijo = "demonik"
+        mi_clave_fija = "demonik22*"
+
+        admin = Usuario.query.filter_by(username=mi_usuario_fijo).first()
         if not admin:
-            db.session.add(Usuario(username="monetum_admin", password=generate_password_hash("M0netum#2026")))
+            db.session.add(Usuario(username=mi_usuario_fijo, password=generate_password_hash(mi_clave_fija)))
             db.session.commit()
         elif not admin.password.startswith(("scrypt:", "pbkdf2:")):
-            admin.password = generate_password_hash(admin.password)
+            admin.password = generate_password_hash(mi_clave_fija)
             db.session.commit()
 
 inicializar_bd()
+
 if __name__ == "__main__":
     puerto = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=puerto, debug=False)
-    
