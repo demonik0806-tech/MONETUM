@@ -99,7 +99,7 @@
                 </select>
                 <select id="select-moneda" onchange="cambiarMoneda()" style="width: 65px; padding: 4px; font-size: 11px;">
                     <option value="COP" {% if usuario.moneda_activa == 'COP' %}selected{% endif %}>COP</option>
-                    <option value="USD" {% if usuario.num_activa == 'USD' or usuario.moneda_activa == 'USD' %}selected{% endif %}>USD</option>
+                    <option value="USD" {% if usuario.moneda_activa == 'USD' %}selected{% endif %}>USD</option>
                     <option value="EUR" {% if usuario.moneda_activa == 'EUR' %}selected{% endif %}>EUR</option>
                 </select>
             </div>
@@ -114,28 +114,56 @@
             <button class="tab" onclick="switchTab(event, 'perfil')" data-i18n="nav_perfil">⚙️ Perfil</button>
         </div>
 
-        <!-- PANEL 1: INICIO -->
+        <!-- PANEL 1: INICIO (NUEVO RESUMEN FINANCIERO) -->
         <div id="inicio" class="section active">
             <div id="alerta-banner" data-i18n="alerta_presupuesto">⚠️ Alerta: Tienes categorías superando el 85% de tu límite.</div>
             
             <div class="card">
-                <h4 data-i18n="lbl_salario">Salario / Ingreso Mensual</h4>
-                <input type="number" id="input-salario" value="{{ usuario.salario_mensual | int }}" style="font-size: 18px; font-weight: bold; color: #8a7cfb; text-align: center;" oninput="recalcular(); guardarInicio();">
-                <div style="font-size: 11px; color: #a1a9bd; margin-top: 6px; text-align: center;">
-                    <span data-i18n="lbl_libre">Libre tras presupuestos:</span> <strong id="lbl-libre" style="color: var(--text-color);">$0</strong>
+                <h4 style="color: #8a7cfb; text-align: center; margin-bottom: 15px;">Resumen Financiero</h4>
+                
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <span style="font-size: 13px;">Ingreso Mensual (Salario):</span>
+                    <input type="number" id="input-salario" value="{{ usuario.salario_mensual | int }}" style="width: 110px; padding: 5px; text-align: right; color: #8a7cfb; font-weight: bold;" oninput="recalcular(); guardarInicio();">
+                </div>
+                
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <span style="font-size: 13px;">Aporte a Meta Principal:</span>
+                    <input type="number" id="input-aporte-meta" value="{{ usuario.meta_aporte_mensual | int }}" style="width: 110px; padding: 5px; text-align: right; color: #4CAF50; font-weight: bold;" oninput="recalcular(); guardarInicio();">
+                </div>
+                
+                <div style="display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 12px; color: #a1a9bd;">
+                    <span>Sobrante para Cartera y Deudas:</span>
+                    <span id="lbl-sobrante-meta">$0</span>
+                </div>
+                
+                <hr style="border-color: var(--border-color); margin: 12px 0;">
+                
+                <div style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 12px; color: #feca57;">
+                    <span>Comprometido en Cartera (Límites):</span>
+                    <span id="lbl-total-cartera">$0</span>
+                </div>
+                
+                <div style="display: flex; justify-content: space-between; margin-bottom: 15px; font-size: 12px; color: #ff5252;">
+                    <span>Comprometido en Deudas (Cuotas):</span>
+                    <span id="lbl-total-deudas">$0</span>
+                </div>
+                
+                <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 16px;">
+                    <span>Totalmente Libre:</span>
+                    <span id="lbl-libre">$0</span>
                 </div>
             </div>
 
             <div class="card">
-                <h4 data-i18n="lbl_ahorro_total">Ahorro Potencial Total</h4>
+                <h4 data-i18n="lbl_ahorro_total">Ahorro Potencial Total (Cartera)</h4>
                 <div id="lbl-ahorro" style="font-size: 26px; font-weight: bold; color: #4CAF50; text-align: center; margin-bottom: 12px;">$0</div>
                 
                 <div style="border-top: 1px solid var(--border-color); padding-top: 12px;">
-                    <h4 data-i18n="lbl_meta_principal">🎯 Meta Principal del Ahorro</h4>
+                    <h4 data-i18n="lbl_meta_principal">🎯 Progreso de Meta Global</h4>
                     <div style="display: flex; gap: 6px; margin-bottom: 6px; align-items: center;">
                         <button class="emoji-btn" id="meta-global-icono" onclick="abrirModalMeta()" style="font-size: 16px; padding: 6px 10px;">{{ usuario.meta_global_icono or '🗼' }}</button>
                         <input type="text" id="meta-nombre" value="{{ usuario.meta_global_nombre }}" placeholder="Nombre" style="flex: 2;" oninput="guardarInicio()">
-                        <input type="number" id="meta-objetivo" value="{{ usuario.meta_global_objetivo | int }}" placeholder="Valor" style="flex: 1.2;" oninput="recalcular(); guardarInicio();">
+                        <input type="number" id="meta-objetivo" value="{{ usuario.meta_global_objetivo | int }}" placeholder="Meta Total" style="flex: 1.2;" oninput="recalcular(); guardarInicio();">
                     </div>
                     <div class="meta-bar-bg">
                         <div id="meta-progreso-fill" class="meta-bar-fill"></div>
@@ -219,6 +247,7 @@
                         {% for d in deudas %}
                         <div class="top-item">
                             <span>💳 {{ d.nombre_deuda }} (${{ d.monto_total | int }})</span>
+                            <span class="deuda-cuota-oculta" style="display:none;">{{ d.cuota_mensual }}</span>
                             <button class="del-btn" onclick="eliminarDeuda('{{ d.nombre_deuda }}')">✕</button>
                         </div>
                         {% endfor %}
@@ -345,8 +374,8 @@
             es: {
                 nav_inicio: "🏠 Inicio", nav_cartera: "📊 Cartera", nav_deudas: "💳 Deudas", nav_invertir: "💡 Invertir", nav_analitica: "📈 Analítica", nav_perfil: "⚙️ Perfil",
                 alerta_presupuesto: "⚠️ Alerta: Tienes categorías superando el 85% de tu límite.",
-                lbl_salario: "Salario / Ingreso Mensual", lbl_libre: "Libre tras presupuestos:", lbl_ahorro_total: "Ahorro Potencial Total",
-                lbl_meta_principal: "🎯 Meta Principal del Ahorro", lbl_top_ahorro: "🏆 Top Mayor Ahorro", calculando: "Calculando...",
+                lbl_salario: "Salario / Ingreso Mensual", lbl_libre: "Libre tras presupuestos:", lbl_ahorro_total: "Ahorro Potencial Total (Cartera)",
+                lbl_meta_principal: "🎯 Progreso de Meta Global", lbl_top_ahorro: "🏆 Top Mayor Ahorro", calculando: "Calculando...",
                 th_cat: "Categoría", th_limite: "Límite", th_gasto: "Gasto", th_ahorro: "Ahorro", th_meta: "Meta", th_balance: "Balance",
                 btn_agregar: "+ Agregar Categoría", btn_ocr: "📸 Escanear Recibo con IA (OCR)", btn_sync: "🔄 Sincronizar Open Banking", btn_csv: "📥 Descargar Reporte CSV",
                 deudas_titulo: "💳 Control de Pasivos y Deudas", deudas_activas: "Mis Deudas Activas", sin_deudas: "Sin deudas registradas", btn_reg_deuda: "Registrar Deuda",
@@ -357,8 +386,8 @@
             en: {
                 nav_inicio: "🏠 Home", nav_cartera: "📊 Wallet", nav_deudas: "💳 Debts", nav_invertir: "💡 Invest", nav_analitica: "📈 Analytics", nav_perfil: "⚙️ Profile",
                 alerta_presupuesto: "⚠️ Alert: Categories exceeding 85% of your limit.",
-                lbl_salario: "Salary / Monthly Income", lbl_libre: "Free after budget:", lbl_ahorro_total: "Total Potential Savings",
-                lbl_meta_principal: "🎯 Main Savings Goal", lbl_top_ahorro: "🏆 Top Savings", calculando: "Calculating...",
+                lbl_salario: "Salary / Monthly Income", lbl_libre: "Free after budget:", lbl_ahorro_total: "Total Potential Savings (Wallet)",
+                lbl_meta_principal: "🎯 Global Goal Progress", lbl_top_ahorro: "🏆 Top Savings", calculando: "Calculating...",
                 th_cat: "Category", th_limite: "Limit", th_gasto: "Spent", th_ahorro: "Savings", th_meta: "Goal", th_balance: "Balance",
                 btn_agregar: "+ Add Category", btn_ocr: "📸 AI Receipt Scan (OCR)", btn_sync: "🔄 Sync Open Banking", btn_csv: "📥 Download CSV Report",
                 deudas_titulo: "💳 Liabilities & Debts", deudas_activas: "Active Debts", sin_deudas: "No debts registered", btn_reg_deuda: "Register Debt",
@@ -489,6 +518,7 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         salario: parseFloat(document.getElementById("input-salario").value) || 0,
+                        meta_aporte: parseFloat(document.getElementById("input-aporte-meta").value) || 0,
                         meta_icono: document.getElementById("meta-global-icono").innerText,
                         meta_nombre: document.getElementById("meta-nombre").value,
                         meta_objetivo: parseFloat(document.getElementById("meta-objetivo").value) || 0
@@ -541,7 +571,9 @@
             let gastosCat = [];
             let rankingItems = [];
             let alertaActiva = false;
+            let totalDeudas = 0;
 
+            // Calcular presupuestos (Cartera)
             document.querySelectorAll("#tabla-body tr").forEach(tr => {
                 let cat = tr.querySelector(".input-cat").value;
                 let lim = parseFloat(tr.querySelector(".limite").value) || 0;
@@ -573,12 +605,26 @@
 
             document.getElementById("alerta-banner").style.display = alertaActiva ? "block" : "none";
 
-            ahorroGlobalActual = totalAhorro;
-            const salario = parseFloat(document.getElementById("input-salario").value) || 0;
-            const libre = salario - totalLimites;
-            document.getElementById("lbl-libre").innerText = formatMoneda(libre);
-            document.getElementById("lbl-libre").style.color = libre >= 0 ? "#4CAF50" : "#ff5252";
+            // Calcular suma de deudas leyendo los valores ocultos
+            document.querySelectorAll(".deuda-cuota-oculta").forEach(el => {
+                totalDeudas += parseFloat(el.innerText) || 0;
+            });
 
+            // Matemáticas del Resumen Financiero Nuevo
+            const salario = parseFloat(document.getElementById("input-salario").value) || 0;
+            const aporteMeta = parseFloat(document.getElementById("input-aporte-meta").value) || 0;
+            const sobranteMeta = salario - aporteMeta;
+            const saldoLibre = sobranteMeta - totalLimites - totalDeudas;
+
+            document.getElementById("lbl-sobrante-meta").innerText = formatMoneda(sobranteMeta);
+            document.getElementById("lbl-total-cartera").innerText = formatMoneda(totalLimites);
+            document.getElementById("lbl-total-deudas").innerText = formatMoneda(totalDeudas);
+            
+            document.getElementById("lbl-libre").innerText = formatMoneda(saldoLibre);
+            document.getElementById("lbl-libre").style.color = saldoLibre >= 0 ? "#4CAF50" : "#ff5252";
+
+            // Mostrar el ahorro potencial de la cartera abajo
+            ahorroGlobalActual = totalAhorro;
             const lblAhorro = document.getElementById("lbl-ahorro");
             lblAhorro.innerText = formatMoneda(totalAhorro);
             lblAhorro.style.color = totalAhorro >= 0 ? "#4CAF50" : "#ff5252";
@@ -654,12 +700,28 @@
         async function guardarPerfil() {
             let u = document.getElementById("nuevo-user").value;
             let p = document.getElementById("nuevo-pass").value;
+            
+            if(!u && !p) {
+                alert("Debes ingresar un nuevo usuario o contraseña.");
+                return;
+            }
+            
             let res = await fetch('/api/actualizar-perfil', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({nuevo_username: u, nuevo_password: p})
             });
-            if(res.ok) alert("OK");
+            
+            let data = await res.json();
+            
+            if(res.ok && data.status === "ok") {
+                alert("Credenciales actualizadas. Por favor, inicia sesión nuevamente.");
+                if (data.redirect) {
+                    window.location.href = data.redirect;
+                }
+            } else {
+                alert("Error al actualizar credenciales.");
+            }
         }
 
         aplicarIdioma(idiomaActual);
