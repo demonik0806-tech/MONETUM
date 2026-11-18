@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MONETUM - Panel de Control</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px; }
+        .panel { max-width: 800px; margin: 0 auto; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        h1 { color: #333; border-bottom: 2px solid #28a745; padding-bottom: 10px; }
+        .section { margin-top: 20px; }
+        .item-list { list-style: none; padding: 0; }
+        .item-list li { background: #f9f9f9; margin: 5px 0; padding: 10px; border-radius: 4px; display: flex; justify-content: space-between; align-items: center; border-left: 4px solid #28a745; }
+        .item-list li.deuda { border-left-color: #dc3545; }
+        .del-btn { background: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .del-btn:hover { background: #c82333; }
+    </style>
+    <script>
+        function eliminarDeuda(nombre) {
+            if(confirm("¿Seguro que deseas eliminar la deuda: " + nombre + "?")) {
+                fetch('/eliminar_deuda/' + encodeURIComponent(nombre), { method: 'POST' })
+                .then(() => window.location.reload());
+            }
+        }
+    </script>
+</head>
+<body>
+    <div class="panel">
+        <h1>Bienvenido, {{ usuario.username }}</h1>
+        
+        <div class="section">
+            <h2>Mis Presupuestos (COP)</h2>
+            {% if presupuestos %}
+                <ul class="item-list">
+                {% for p in presupuestos %}
+                    <li>
+                        <span>{{ p.categoria }}</span>
+                        <strong>${{ "{:,.0f}".format(p.monto).replace(',', '.') }}</strong>
+                    </li>
+                {% endfor %}
+                </ul>
+            {% else %}
+                <p>No tienes presupuestos registrados.</p>
+            {% endif %}
+        </div>
+
+        <div class="section">
+            <h2>Mis Deudas Activas</h2>
+            {% if deudas %}
+                <ul class="item-list">
+                {% for d in deudas %}
+                    <li class="deuda">
+                        <span>{{ d.nombre_deuda }}</span>
+                        <div>
+                            <strong>${{ "{:,.0f}".format(d.monto).replace(',', '.') }}</strong>
+                            <button class="del-btn" onclick="eliminarDeuda('{{ d.nombre_deuda }}')">✕</button>
+                        </div>
+                    </li>
+                {% endfor %}
+                </ul>
+            {% else %}
+                <p>No tienes deudas registradas.</p>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>
