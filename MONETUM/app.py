@@ -56,6 +56,13 @@ class Deuda(db.Model):
     tasa_interes = db.Column(db.Float, default=0.0)
     cuota_mensual = db.Column(db.Float, default=0.0)
 
+class IngresoExtra(db.Model):
+    __tablename__ = "ingresos_extras"
+    id = db.Column(db.Integer, primary_key=True)
+    usuario_id = db.Column(db.Integer, db.ForeignKey("usuarios.id"), nullable=False)
+    concepto = db.Column(db.String(100), nullable=False)
+    monto = db.Column(db.Float, nullable=False)
+
 @app.after_request
 def agregar_cabeceras_seguridad(response):
     response.headers["X-Content-Type-Options"] = "nosniff"
@@ -94,7 +101,8 @@ def panel_principal():
     usuario = Usuario.query.filter_by(username=session["usuario"]).first()
     presupuestos = Presupuesto.query.filter_by(usuario_id=usuario.id).all()
     deudas = Deuda.query.filter_by(usuario_id=usuario.id).all()
-    return render_template("index.html", usuario=usuario, presupuestos=presupuestos, deudas=deudas)
+    ingresos_extras = IngresoExtra.query.filter_by(usuario_id=usuario.id).all()
+    return render_template("index.html", usuario=usuario, presupuestos=presupuestos, deudas=deudas, ingresos_extras=ingresos_extras)
 
 @app.route("/api/actualizar-presupuesto", methods=["POST"])
 @csrf.exempt
@@ -149,6 +157,31 @@ def eliminar_deuda():
     d = Deuda.query.filter_by(usuario_id=usuario.id, nombre_deuda=datos["nombre"]).first()
     if d:
         db.session.delete(d)
+        db.session.commit()
+    return jsonify({"status": "ok"})
+
+@app.route("/api/agregar-ingreso-extra", methods=["POST"])
+@csrf.exempt
+def agregar_ingreso_extra():
+    if "usuario" not in session: return jsonify({"error": "No autorizado"}), 403
+    datos = request.json
+    usuario = Usuario.query.filter_by(username=session["usuario"]).first()
+    concepto = datos.get("concepto", "").strip()
+    monto = float(datos.get("monto", 0))
+    if concepto and monto > 0:
+        db.session.add(IngresoExtra(usuario_id=usuario.id, concepto=concepto, monto=monto))
+        db.session.commit()
+    return jsonify({"status": "ok"})
+
+@app.route("/api/eliminar-ingreso-extra", methods=["POST"])
+@csrf.exempt
+def eliminar_ingreso_extra():
+    if "usuario" not in session: return jsonify({"error": "No autorizado"}), 403
+    datos = request.json
+    usuario = Usuario.query.filter_by(username=session["usuario"]).first()
+    ie = IngresoExtra.query.filter_by(usuario_id=usuario.id, id=datos["id"]).first()
+    if ie:
+        db.session.delete(ie)
         db.session.commit()
     return jsonify({"status": "ok"})
 
