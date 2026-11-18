@@ -9,14 +9,18 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
+            /* Tema Oscuro Clásico */
             --bg-body: #0b0f19; --bg-shell: #121824; --bg-header: #1a1e29; --bg-nav: #161c28; --bg-card: #1a1e29;
             --text-color: #fff; --border-color: #2d3342; --input-bg: #0b0f19;
             --accent-primary: #8a7cfb; --accent-button: #6c5ce7; --accent-success: #4CAF50; --accent-warning: #feca57; --accent-danger: #ff5252;
+            --accent-lima: #a3e635; /* Nuevo color para la barra de progreso */
         }
         body.light-theme {
+            /* Nuevo Tema Infierno (Vinotinto/Rojo) */
             --bg-body: #1a0505; --bg-shell: #2b0808; --bg-header: #3d0c0c; --bg-nav: #2b0808; --bg-card: #3d0c0c;
             --text-color: #ffcccc; --border-color: #7a1f1f; --input-bg: #1a0505;
             --accent-primary: #ff5252; --accent-button: #c23616; --accent-success: #e1b12c; --accent-warning: #d35400; --accent-danger: #ff5252;
+            --accent-lima: #a3e635;
         }
 
         body { background-color: var(--bg-body); color: var(--text-color); font-family: 'Segoe UI', Arial, sans-serif; margin: 0; padding: 15px; display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; transition: background 0.3s ease; }
@@ -57,6 +61,34 @@
         .emoji-grid span { padding: 4px; border-radius: 6px; transition: 0.15s; }
         .emoji-grid span:hover { background: var(--border-color); transform: scale(1.15); }
         .chart-container { width: 100%; max-width: 260px; margin: auto; margin-bottom: 15px; }
+
+        /* Estilos de la barra de progreso de la meta */
+        .progress-bar-container {
+            width: 100%;
+            background-color: var(--input-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            height: 12px;
+            margin-top: 8px;
+            overflow: hidden;
+            position: relative;
+        }
+        .progress-bar-fill {
+            height: 100%;
+            background-color: var(--accent-lima);
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+        .progress-bar-text {
+            position: absolute;
+            width: 100%;
+            text-align: center;
+            top: -1px;
+            font-size: 9px;
+            font-weight: bold;
+            color: var(--bg-shell); /* Texto oscuro para contrastar */
+            pointer-events: none;
+        }
     </style>
 </head>
 <body class="{% if not usuario.modo_oscuro %}light-theme{% endif %}">
@@ -80,13 +112,13 @@
             <button class="tab" onclick="switchTab(event, 'perfil')">⚙️ Perfil</button>
         </div>
 
-        <!-- PANEL 1: INICIO (MEJORADO CON SUGERENCIA IA Y NUEVO NOMBRE) -->
+        <!-- PANEL 1: INICIO -->
         <div id="inicio" class="section active">
-            <div id="alerta-banner" style="display: none; background: rgba(255, 82, 82, 0.2); border: 1px solid var(--accent-danger); color: var(--accent-danger); padding: 10px; border-radius: 8px; font-size: 12px; margin-bottom: 12px; text-align: center; font-weight: bold;">⚠️ Alerta: Tienes categorías superando el 85% de tu límite.</div>
+            <!-- Alerta corregida: Solo muestra si supera el 85% de un límite MAYOR A 0 -->
+            <div id="alerta-banner" style="display: none; background: rgba(255, 82, 82, 0.2); border: 1px solid var(--accent-danger); color: var(--accent-danger); padding: 10px; border-radius: 8px; font-size: 12px; margin-bottom: 12px; text-align: center; font-weight: bold;">⚠️ Alerta: Tienes categorías superando el 85% de su límite.</div>
             
             <div class="card">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                    <!-- NOMBRE CAMBIADO A "PROYECTO O META" -->
                     <h4 style="color: var(--accent-primary); margin:0;">🎯 Proyecto o Meta</h4>
                     <button class="save-btn-small" id="btn-save-inicio" onclick="guardarInicioManual()">💾 Guardar</button>
                 </div>
@@ -112,11 +144,22 @@
                         <span style="font-size: 11px; color: #a1a9bd; display: block;">Ya ahorrado en tu alcancía:</span>
                         <span id="lbl-ahorro-acumulado" style="font-size: 16px; font-weight: bold; color: var(--accent-primary);">${{ usuario.ahorro_acumulado | default(0) | int }}</span>
                     </div>
-                    <button onclick="abrirModalDeposito()" style="background: var(--accent-success); color: white; border: none; padding: 8px 12px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 12px;">+ Depositar 💰</button>
+                    <!-- Botón para abrir modal de transacciones (Depositar o Retirar) -->
+                    <button onclick="abrirModalTransaccion()" style="background: var(--accent-success); color: white; border: none; padding: 8px 12px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 12px;">💰 Mover Dinero</button>
                 </div>
 
                 <div id="lbl-tiempo-meta" style="font-size: 13px; font-weight: bold; color: var(--accent-primary); text-align: center; margin-bottom: 6px; background: var(--input-bg); padding: 8px; border-radius: 6px; border: 1px dashed var(--border-color);">
                     Tiempo estimado: -- meses
+                </div>
+
+                <!-- NUEVA BARRA DE PROGRESO LIMA -->
+                <div class="progress-bar-container">
+                    <div id="meta-progress-fill" class="progress-bar-fill"></div>
+                    <div id="meta-progress-text" class="progress-bar-text">0%</div>
+                </div>
+                
+                <div id="lbl-feedback-meta" style="font-size: 11.5px; text-align: center; margin-bottom: 15px; margin-top: 10px; padding: 0 10px;">
+                    Calculando análisis financiero...
                 </div>
 
                 <hr style="border-color: var(--border-color); margin: 12px 0;">
@@ -144,13 +187,12 @@
             </div>
             
             <div class="card">
-                <!-- SECCIÓN RENOMBRADA A DESGLOSE DE GASTOS CON IA -->
                 <h4 style="color: var(--accent-warning);">💸 Desglose de Gastos</h4>
                 <div id="top-ahorro-lista"><div style="font-size: 12px; color: #a1a9bd; text-align: center;">Calculando...</div></div>
             </div>
         </div>
 
-        <!-- PANEL 2: CARTERA (GUARDADO UNO POR UNO SEGURO) -->
+        <!-- PANEL 2: CARTERA -->
         <div id="cartera" class="section">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                 <h4 style="margin: 0; color: #a1a9bd; font-size: 12px;">ASIGNACIÓN DE RECURSOS</h4>
@@ -245,10 +287,9 @@
         </div>
     </div>
 
-    <!-- MODAL DE EMOJIS, OPERADORES Y STREAMING -->
+    <!-- MODAL DE EMOJIS -->
     <div id="emoji-modal" class="modal-overlay">
         <div class="modal-content">
-            
             <h4 style="color: var(--accent-primary); margin: 0 0 10px 0; font-size: 13px;">Telecomunicaciones y Redes</h4>
             <div style="display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 10px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">
                 <button class="emoji-btn" onclick="seleccionarEmoji('🔴 Claro')">🔴 Claro</button>
@@ -257,8 +298,6 @@
                 <button class="emoji-btn" onclick="seleccionarEmoji('🟪 Wom')">🟪 Wom</button>
                 <button class="emoji-btn" onclick="seleccionarEmoji('📶 ETB')">📶 ETB</button>
             </div>
-
-            <!-- SECCIÓN NUEVA DE STREAMING -->
             <h4 style="color: var(--accent-primary); margin: 0 0 10px 0; font-size: 13px;">Streaming y Entretenimiento</h4>
             <div style="display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 15px; border-bottom: 1px solid var(--border-color); padding-bottom: 15px;">
                 <button class="emoji-btn" onclick="seleccionarEmoji('🟥 Netflix')">🟥 Netflix</button>
@@ -268,7 +307,6 @@
                 <button class="emoji-btn" onclick="seleccionarEmoji('🏰 Disney+')">🏰 Disney+</button>
                 <button class="emoji-btn" onclick="seleccionarEmoji('▶️ YouTube')">▶️ YouTube</button>
             </div>
-
             <h4 style="color: var(--accent-primary); margin: 0;">Elige un Icono</h4>
             <div class="emoji-grid">
                 <span onclick="seleccionarEmoji('🚗')">🚗</span><span onclick="seleccionarEmoji('🏍️')">🏍️</span><span onclick="seleccionarEmoji('✈️')">✈️</span><span onclick="seleccionarEmoji('🗼')">🗼</span><span onclick="seleccionarEmoji('🏖️')">🏖️</span><span onclick="seleccionarEmoji('🏠')">🏠</span><span onclick="seleccionarEmoji('🏢')">🏢</span><span onclick="seleccionarEmoji('🛋️')">🛋️</span><span onclick="seleccionarEmoji('💻')">💻</span><span onclick="seleccionarEmoji('📱')">📱</span><span onclick="seleccionarEmoji('🎧')">🎧</span><span onclick="seleccionarEmoji('📷')">📷</span><span onclick="seleccionarEmoji('🎮')">🎮</span><span onclick="seleccionarEmoji('💰')">💰</span><span onclick="seleccionarEmoji('💎')">💎</span><span onclick="seleccionarEmoji('🏦')">🏦</span><span onclick="seleccionarEmoji('📈')">📈</span><span onclick="seleccionarEmoji('💳')">💳</span><span onclick="seleccionarEmoji('🍔')">🍔</span><span onclick="seleccionarEmoji('🍕')">🍕</span><span onclick="seleccionarEmoji('☕')">☕</span><span onclick="seleccionarEmoji('🛒')">🛒</span><span onclick="seleccionarEmoji('🍷')">🍷</span><span onclick="seleccionarEmoji('👗')">👗</span><span onclick="seleccionarEmoji('👟')">👟</span><span onclick="seleccionarEmoji('⌚')">⌚</span><span onclick="seleccionarEmoji('💍')">💍</span><span onclick="seleccionarEmoji('🎓')">🎓</span><span onclick="seleccionarEmoji('📚')">📚</span><span onclick="seleccionarEmoji('💊')">💊</span><span onclick="seleccionarEmoji('🏥')">🏥</span><span onclick="seleccionarEmoji('🏋️')">🏋️</span><span onclick="seleccionarEmoji('⚽')">⚽</span><span onclick="seleccionarEmoji('🎸')">🎸</span><span onclick="seleccionarEmoji('🎬')">🎬</span><span onclick="seleccionarEmoji('🐶')">🐶</span><span onclick="seleccionarEmoji('🐱')">🐱</span><span onclick="seleccionarEmoji('🎁')">🎁</span><span onclick="seleccionarEmoji('🔧')">🔧</span><span onclick="seleccionarEmoji('⚡')">⚡</span>
@@ -277,16 +315,19 @@
         </div>
     </div>
 
-    <!-- MODAL SEGURO PARA EL DEPÓSITO -->
-    <div id="deposito-modal" class="modal-overlay">
+    <!-- NUEVO MODAL SEGURO PARA TRANSACCIONES (DEPOSITAR O RETIRAR) -->
+    <div id="transaccion-modal" class="modal-overlay">
         <div class="modal-content">
-            <h4 style="color: var(--accent-success); margin: 0 0 10px 0;">Depositar a la Alcancía 💰</h4>
-            <p style="font-size: 12px; color: #a1a9bd; margin-bottom: 15px;">¿Cuánto dinero vas a depositar en tu alcancía hoy? (Escribe el número sin puntos)</p>
-            <input type="number" id="input-deposito-modal" placeholder="Ej: 50000" style="text-align: center; font-size: 16px; font-weight: bold; margin-bottom: 15px;">
-            <div style="display: flex; gap: 10px;">
-                <button onclick="cerrarModalDeposito()" style="flex: 1; background: var(--bg-header); color: var(--text-color); border: none; padding: 10px; border-radius: 8px; cursor: pointer;">Cancelar</button>
-                <button onclick="procesarDepositoModal()" style="flex: 1; background: var(--accent-success); color: white; border: none; padding: 10px; border-radius: 8px; cursor: pointer; font-weight: bold;">Depositar</button>
+            <h4 style="color: var(--text-color); margin: 0 0 10px 0;">Mover Dinero de la Alcancía</h4>
+            <p style="font-size: 12px; color: #a1a9bd; margin-bottom: 15px;">Ingresa el monto (sin puntos) y selecciona la operación:</p>
+            <input type="number" id="input-transaccion-monto" placeholder="Ej: 50000" style="text-align: center; font-size: 16px; font-weight: bold; margin-bottom: 15px;">
+            
+            <div style="display: flex; gap: 8px; margin-bottom: 15px;">
+                <button onclick="procesarTransaccion('retirar')" style="flex: 1; background: var(--accent-danger); color: white; border: none; padding: 10px; border-radius: 8px; cursor: pointer; font-weight: bold;">➖ Retirar</button>
+                <button onclick="procesarTransaccion('depositar')" style="flex: 1; background: var(--accent-success); color: white; border: none; padding: 10px; border-radius: 8px; cursor: pointer; font-weight: bold;">➕ Depositar</button>
             </div>
+            
+            <button onclick="cerrarModalTransaccion()" style="width: 100%; background: var(--bg-header); color: var(--text-color); border: none; padding: 10px; border-radius: 8px; cursor: pointer;">Cancelar</button>
         </div>
     </div>
 
@@ -305,32 +346,48 @@
             return simbolo + Math.round(val).toLocaleString('es-CO') + sufijo;
         }
 
-        // LÓGICA DEL MODAL DE DEPÓSITO
-        function abrirModalDeposito() {
-            document.getElementById('input-deposito-modal').value = '';
-            document.getElementById('deposito-modal').style.display = 'flex';
-            setTimeout(() => document.getElementById('input-deposito-modal').focus(), 100);
+        // LÓGICA DEL MODAL DE TRANSACCIÓN (DEPOSITAR/RETIRAR)
+        function abrirModalTransaccion() {
+            document.getElementById('input-transaccion-monto').value = '';
+            document.getElementById('transaccion-modal').style.display = 'flex';
+            setTimeout(() => document.getElementById('input-transaccion-monto').focus(), 100);
         }
 
-        function cerrarModalDeposito() { document.getElementById('deposito-modal').style.display = 'none'; }
+        function cerrarModalTransaccion() { document.getElementById('transaccion-modal').style.display = 'none'; }
 
-        async function procesarDepositoModal() {
-            let montoStr = document.getElementById('input-deposito-modal').value;
+        async function procesarTransaccion(tipo) {
+            let montoStr = document.getElementById('input-transaccion-monto').value;
             if(!montoStr) return;
             let monto = parseFloat(montoStr.replace(/\./g, '').replace(/,/g, ''));
             if(isNaN(monto) || monto <= 0) { alert("Ingresa un monto válido."); return; }
 
-            const res = await fetch('/api/depositar-meta', {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ monto: monto })
-            });
-            const data = await res.json();
-            if(data.status === 'ok') {
-                ahorroAcumuladoLocal = data.nuevo_acumulado;
-                document.getElementById('lbl-ahorro-acumulado').innerText = formatMoneda(ahorroAcumuladoLocal);
-                recalcular();
-                cerrarModalDeposito();
-                alert("¡Depósito exitoso! Has sumado dinero a tu alcancía.");
+            // Si es un retiro, restamos el monto (enviamos valor negativo a la API)
+            if (tipo === 'retirar') {
+                if (monto > ahorroAcumuladoLocal) {
+                    alert("No puedes retirar más de lo que tienes ahorrado.");
+                    return;
+                }
+                monto = -monto; 
+            }
+
+            try {
+                const res = await fetch('/api/depositar-meta', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ monto: monto })
+                });
+                const data = await res.json();
+                if(data.status === 'ok') {
+                    ahorroAcumuladoLocal = data.nuevo_acumulado;
+                    document.getElementById('lbl-ahorro-acumulado').innerText = formatMoneda(ahorroAcumuladoLocal);
+                    recalcular();
+                    cerrarModalTransaccion();
+                    
+                    let mensaje = tipo === 'depositar' ? "¡Depósito exitoso!" : "Retiro procesado correctamente.";
+                    alert(mensaje);
+                }
+            } catch (e) {
+                console.error("Error al procesar transacción:", e);
+                alert("Hubo un error de conexión.");
             }
         }
 
@@ -370,7 +427,6 @@
         
         function eliminarFila(btn) { const tr = btn.closest("tr"); const cat = tr.querySelector(".input-cat").value; tr.remove(); recalcular(); fetch('/api/eliminar-presupuesto', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ categoria: cat }) }); }
 
-        // SISTEMA VISUAL: MARCAR FILA INDIVIDUAL PARA GUARDAR
         function marcarFilaModificada(element) {
             const tr = element.closest("tr");
             if(tr) {
@@ -384,7 +440,6 @@
             }
         }
 
-        // NUEVO: GUARDADO DE FILA ÚNICA (UNO POR UNO)
         async function guardarFilaUnica(btn) {
             const tr = btn.closest("tr");
             let cat = tr.querySelector(".input-cat").value;
@@ -418,7 +473,6 @@
             }
         }
 
-        // GUARDADO SEGURO PARA LA SECCIÓN INICIO
         function marcarModificado(panel) {
             if(panel === 'inicio') {
                 const btn = document.getElementById("btn-save-inicio");
@@ -478,7 +532,10 @@
 
             document.querySelectorAll("#tabla-body tr").forEach(tr => {
                 let cat = tr.querySelector(".input-cat").value; let lim = parseFloat(tr.querySelector(".limite").value) || 0; let gas = parseFloat(tr.querySelector(".gasto").value) || 0; let meta = tr.querySelector(".emoji-btn").innerText; let ah = lim - gas;
+                
+                // Corrección Alerta: Solo activa si el límite es mayor a 0 y supera el 85%
                 if (lim > 0 && (gas / lim) >= 0.85) { alertaActiva = true; }
+                
                 totalAhorro += ah; totalLimites += lim; nombresCat.push(cat); gastosCat.push(gas); rankingItems.push({ cat, ah, gas, meta });
                 let cell = tr.querySelector(".ahorro"); cell.innerText = formatMoneda(ah); cell.style.color = ah >= 0 ? "var(--accent-success)" : "var(--accent-danger)";
             });
@@ -490,19 +547,74 @@
             const saldoLibre = capacidadMaxima - aporteMeta;
             saldoLibreGlobal = saldoLibre;
 
-            // ACTUALIZAR TIEMPOS
+            // ACTUALIZAR TIEMPOS Y BARRA DE PROGRESO (COLOR LIMA)
             let textoTiempo = "Fija un aporte para ver el tiempo estimado";
             let faltanteMeta = Math.max(0, objetivoMeta - ahorroAcumuladoLocal);
+            
+            // Lógica de la barra
+            let porcentajeAvance = 0;
+            if(objetivoMeta > 0) {
+                porcentajeAvance = Math.min(100, (ahorroAcumuladoLocal / objetivoMeta) * 100);
+            }
+            
+            let fillBar = document.getElementById("meta-progress-fill");
+            let textBar = document.getElementById("meta-progress-text");
+            
+            fillBar.style.width = porcentajeAvance + "%";
+            
+            if(porcentajeAvance > 0) {
+                textBar.innerText = porcentajeAvance.toFixed(1) + "%";
+            } else {
+                textBar.innerText = "0%";
+            }
+
+            // Dependiendo del porcentaje, ajustar el color del texto para que se lea (blanco si barra corta, negro si barra larga)
+            if(porcentajeAvance > 50) {
+                textBar.style.color = "#0b0f19"; // Oscuro sobre lima
+            } else {
+                textBar.style.color = "var(--text-color)"; // Blanco sobre fondo
+            }
 
             if (faltanteMeta === 0 && objetivoMeta > 1) {
-                textoTiempo = `¡Meta completada! 🎉 Lograste ahorrar todo.`;
+                textoTiempo = `¡Meta completada! 🎉`;
+                fillBar.style.width = "100%";
+                textBar.innerText = "100% Completado";
             } else if (aporteMeta > 0) {
                 let mesesRestantes = Math.ceil(faltanteMeta / aporteMeta);
                 textoTiempo = `Logro estimado en: ${mesesRestantes} mes(es) 🎯`;
             }
             document.getElementById("lbl-tiempo-meta").innerText = textoTiempo;
 
-            // NUEVA FUNCIÓN: TOP GASTOS CON IA
+            // IA FINANCIERA (Liquidez)
+            let textoSugerencia = ""; let colorSugerencia = "#a1a9bd";
+            
+            if (faltanteMeta === 0 && objetivoMeta > 1) {
+                 textoSugerencia = "Excelente trabajo. Puedes retirar el dinero o fijarte una nueva meta.";
+                 colorSugerencia = "var(--accent-success)";
+            } else if (aporteMeta > 0) {
+                if (saldoLibre < 0) {
+                    textoSugerencia = `⚠️ Tu aporte ahoga tu liquidez. Faltan ${formatMoneda(Math.abs(saldoLibre))}/mes.`; colorSugerencia = "var(--accent-danger)";
+                } else if (saldoLibre > 0 && aporteMeta < capacidadMaxima) {
+                    let aporteOptimo = aporteMeta + (saldoLibre * 0.5); 
+                    let mesesOptimos = Math.ceil(faltanteMeta / aporteOptimo);
+                    
+                    let mesesRestantesCalculo = Math.ceil(faltanteMeta / aporteMeta);
+                    if (mesesOptimos < mesesRestantesCalculo) { 
+                        textoSugerencia = `💡 Aún tienes saldo libre. Aportando ${formatMoneda(aporteOptimo)} acabarías en ${mesesOptimos} meses.`; colorSugerencia = "var(--accent-success)"; 
+                    } else { 
+                        textoSugerencia = `Finanzas saludables. Sobran ${formatMoneda(saldoLibre)} totalmente libres al mes.`; colorSugerencia = "var(--accent-success)"; 
+                    }
+                } else if (saldoLibre === 0) { 
+                    textoSugerencia = `Al límite. Usas toda tu capacidad de ahorro.`; colorSugerencia = "var(--accent-warning)"; 
+                }
+            } else if (capacidadMaxima > 0) { 
+                textoSugerencia = `Podrías aportar hasta ${formatMoneda(capacidadMaxima)} al mes sin endeudarte.`;
+            } else { 
+                textoSugerencia = `Gastos y deudas superan el salario. No hay espacio.`; colorSugerencia = "var(--accent-danger)"; 
+            }
+            document.getElementById("lbl-feedback-meta").innerHTML = `<span style="color: ${colorSugerencia};">${textoSugerencia}</span>`;
+
+            // TOP GASTOS CON IA
             let gastosOrdenados = rankingItems.filter(i => i.gas > 0).sort((a, b) => b.gas - a.gas);
             let htmlGastos = "";
             let totalGastosLista = gastosOrdenados.reduce((acc, el) => acc + el.gas, 0);
@@ -522,10 +634,9 @@
                     </div>`;
                 }
 
-                // Tip IA basado en Gastos
-                let posibleAhorro = totalGastosLista * 0.10; // 10%
+                let posibleAhorro = totalGastosLista * 0.10; 
                 htmlGastos += `<div style="margin-top: 12px; background: rgba(138, 124, 251, 0.1); border: 1px dashed var(--accent-primary); padding: 10px; border-radius: 8px; font-size: 11px; text-align: center; color: var(--text-color);">
-                    💡 <strong>Tip de la IA:</strong> Tienes ${formatMoneda(totalGastosLista)} en gastos. Si los reduces solo un 10%, podrías sumar <strong>${formatMoneda(posibleAhorro)} extra</strong> a tu proyecto cada mes.
+                    💡 <strong>Tip de la IA:</strong> Tienes ${formatMoneda(totalGastosLista)} en gastos fijos. Si los reduces solo un 10%, podrías sumar <strong>${formatMoneda(posibleAhorro)} extra</strong> a tu proyecto cada mes.
                 </div>`;
             } else {
                 htmlGastos = `<div style="font-size: 11px; color: #a1a9bd; text-align: center;">Sin gastos registrados</div>`;
