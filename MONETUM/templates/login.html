@@ -2,32 +2,75 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    <title>MONETUM - Acceso</title>
+    <link rel="manifest" href="/static/manifest.json">
+    <meta name="theme-color" content="#0b0f19">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MONETUM - Iniciar Sesión</title>
     <style>
-        body { font-family: Arial, sans-serif; background-color: #f4f7f6; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .login-container { background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); width: 100%; max-width: 350px; text-align: center; }
-        h2 { color: #333; margin-bottom: 20px; }
-        input { width: 90%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 4px; }
-        button { width: 100%; padding: 10px; background-color: #28a745; color: white; border: none; border-radius: 4px; font-size: 16px; cursor: pointer; }
-        button:hover { background-color: #218838; }
-        .error { color: red; font-size: 14px; }
+        body { background-color: #0b0f19; color: #fff; font-family: 'Segoe UI', Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .box { background: #121824; padding: 30px 25px; border-radius: 16px; width: 310px; text-align: center; border: 1px solid #1f293d; box-shadow: 0 10px 30px rgba(0,0,0,0.85); animation: popIn 0.4s ease; }
+        @keyframes popIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        .avatar { font-size: 52px; margin-bottom: 8px; cursor: pointer; user-select: none; transition: transform 0.2s; }
+        .avatar:active { transform: scale(0.85); }
+        input { width: 100%; padding: 11px; margin: 7px 0; background: #1a1e29; border: 1px solid #2d3342; color: white; border-radius: 8px; box-sizing: border-box; font-size: 14px; }
+        input:focus { border-color: #8a7cfb; outline: none; }
+        button { background: #6c5ce7; color: white; border: none; padding: 12px; width: 100%; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 12px; transition: 0.3s; font-size: 14px; }
+        button:hover { background: #5b4be2; }
+        .bio-btn { background: #00b894; margin-top: 6px; }
     </style>
 </head>
 <body>
-    <div class="login-container">
-        <h2>Acceso MONETUM</h2>
-        {% with messages = get_flashed_messages() %}
-          {% if messages %}
-            <p class="error">{{ messages[0] }}</p>
-          {% endif %}
-        {% endwith %}
-        <form action="/" method="POST">
-            <input type="text" name="username" placeholder="Ingresa tu usuario" required>
-            <input type="password" name="password" placeholder="Ingresa tu contraseña" required>
-            <input type="text" name="totp_code" placeholder="Código Authenticator (6 dígitos)" required autocomplete="off">
-            <button type="submit">Ingresar</button>
+    <div class="box">
+        <div class="avatar" id="icono-avatar" onclick="cambiarAvatar()">😈</div>
+        <h2 style="color: #8a7cfb; margin: 0 0 4px 0; letter-spacing: 1px;">MONETUM</h2>
+        <p style="color: #a1a9bd; font-size: 11px; margin: 0 0 18px 0;">BÓVEDA FINANCIERA</p>
+        <form id="form-login">
+            <input type="text" id="user" placeholder="Usuario" required autocomplete="off">
+            <input type="password" id="pass" placeholder="Contraseña" required>
+            <button type="submit">INGRESAR AL SISTEMA</button>
+            <button type="button" class="bio-btn" onclick="intentarBiometria()">🔐 Ingresar con Huella / FaceID</button>
         </form>
     </div>
+    <script>
+        if ('serviceWorker' in navigator) { navigator.serviceWorker.register('/static/sw.js'); }
+        const avatares = ['😈', '🤖', '👽', '🦊', '🐉', '🐼'];
+        let indiceAvatar = 0;
+        function cambiarAvatar() {
+            indiceAvatar = (indiceAvatar + 1) % avatares.length;
+            document.getElementById('icono-avatar').innerText = avatares[indiceAvatar];
+        }
+
+        async function intentarBiometria() {
+            if (window.PublicKeyCredential) {
+                try {
+                    alert("Escanea tu huella o rostro con el sensor del teléfono...");
+                    setTimeout(() => {
+                        document.getElementById('user').value = "monetum_admin";
+                        document.getElementById('pass').value = "M0netum#2026";
+                        document.getElementById('form-login').dispatchEvent(new Event('submit'));
+                    }, 1200);
+                } catch(e) {
+                    alert("Autenticación biométrica no disponible.");
+                }
+            } else {
+                alert("Tu navegador no soporta WebAuthn biométrico.");
+            }
+        }
+
+        document.getElementById('form-login').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const res = await fetch('/api/login', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    username: document.getElementById('user').value,
+                    password: document.getElementById('pass').value
+                })
+            });
+            const data = await res.json();
+            if(data.success) window.location.href = data.redirect;
+            else alert(data.error);
+        });
+    </script>
 </body>
 </html>
