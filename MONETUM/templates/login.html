@@ -16,7 +16,6 @@
         input:focus { border-color: #8a7cfb; outline: none; }
         button { background: #6c5ce7; color: white; border: none; padding: 12px; width: 100%; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 12px; transition: 0.3s; font-size: 14px; }
         button:hover { background: #5b4be2; }
-        .bio-btn { background: #00b894; margin-top: 6px; }
     </style>
 </head>
 <body>
@@ -25,10 +24,10 @@
         <h2 style="color: #8a7cfb; margin: 0 0 4px 0; letter-spacing: 1px;">MONETUM</h2>
         <p style="color: #a1a9bd; font-size: 11px; margin: 0 0 18px 0;">BÓVEDA FINANCIERA</p>
         <form id="form-login">
+            <!-- Los campos están vacíos para que puedas ingresar tus nuevas credenciales -->
             <input type="text" id="user" placeholder="Usuario" required autocomplete="off">
             <input type="password" id="pass" placeholder="Contraseña" required>
             <button type="submit">INGRESAR AL SISTEMA</button>
-            <button type="button" class="bio-btn" onclick="intentarBiometria()">🔐 Ingresar con Huella / FaceID</button>
         </form>
     </div>
     <script>
@@ -38,23 +37,6 @@
         function cambiarAvatar() {
             indiceAvatar = (indiceAvatar + 1) % avatares.length;
             document.getElementById('icono-avatar').innerText = avatares[indiceAvatar];
-        }
-
-        async function intentarBiometria() {
-            if (window.PublicKeyCredential) {
-                try {
-                    alert("Escanea tu huella o rostro con el sensor del teléfono...");
-                    setTimeout(() => {
-                        document.getElementById('user').value = "monetum_admin";
-                        document.getElementById('pass').value = "M0netum#2026";
-                        document.getElementById('form-login').dispatchEvent(new Event('submit'));
-                    }, 1200);
-                } catch(e) {
-                    alert("Autenticación biométrica no disponible.");
-                }
-            } else {
-                alert("Tu navegador no soporta WebAuthn biométrico.");
-            }
         }
 
         document.getElementById('form-login').addEventListener('submit', async (e) => {
