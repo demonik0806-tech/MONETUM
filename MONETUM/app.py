@@ -11,7 +11,12 @@ app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "monetum_prod_key_987654321_xyz")
 csrf = CSRFProtect(app)
 
-app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL", "sqlite:///monetum.db")
+# Soporte automático para Postgres si se detecta la URL externa
+db_url = os.environ.get("DATABASE_URL", "sqlite:///monetum.db")
+if db_url.startswith("postgres://"):
+    db_url = db_url.replace("postgres://", "postgresql://", 1)
+
+app.config["SQLALCHEMY_DATABASE_URI"] = db_url
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 db = SQLAlchemy(app)
 
@@ -27,6 +32,7 @@ class Usuario(db.Model):
     meta_global_nombre = db.Column(db.String(100), default="Viaje a Japón")
     meta_global_objetivo = db.Column(db.Float, default=1000000.0)
     meta_aporte_mensual = db.Column(db.Float, default=0.0)
+    ahorro_acumulado = db.Column(db.Float, default=0.0)
     moneda_activa = db.Column(db.String(5), default="COP")
     idioma = db.Column(db.String(5), default="es")
     modo_oscuro = db.Column(db.Boolean, default=True)
@@ -149,6 +155,17 @@ def eliminar_deuda():
         db.session.commit()
     return jsonify({"status": "ok"})
 
+@app.route("/api/depositar-meta", methods=["POST"])
+@csrf.exempt
+def depositar_meta():
+    if "usuario" not in session: return jsonify({"error": "No autorizado"}), 403
+    datos = request.json
+    usuario = Usuario.query.filter_by(username=session["usuario"]).first()
+    if "monto" in datos:
+        usuario.ahorro_acumulado += float(datos["monto"])
+        db.session.commit()
+    return jsonify({"status": "ok", "nuevo_acumulado": usuario.ahorro_acumulado})
+
 @app.route("/api/exportar-csv")
 def exportar_csv():
     if "usuario" not in session: return redirect(url_for("login"))
@@ -186,11 +203,9 @@ def actualizar_perfil():
     usuario = Usuario.query.filter_by(username=session["usuario"]).first()
     
     cambio_credenciales = False
-    
     if datos.get("nuevo_username") and datos["nuevo_username"] != usuario.username:
         usuario.username = datos["nuevo_username"]
         cambio_credenciales = True
-        
     if datos.get("nuevo_password"):
         usuario.password = generate_password_hash(datos["nuevo_password"])
         cambio_credenciales = True
@@ -200,7 +215,6 @@ def actualizar_perfil():
     if cambio_credenciales:
         session.pop("usuario", None)
         return jsonify({"status": "ok", "redirect": url_for("login")})
-        
     return jsonify({"status": "ok"})
 
 def inicializar_bd():
@@ -217,8 +231,9 @@ def inicializar_bd():
                 conn.execute(text("ALTER TABLE usuarios ADD COLUMN modo_oscuro BOOLEAN DEFAULT 1"))
             if "meta_aporte_mensual" not in columnas_u:
                 conn.execute(text("ALTER TABLE usuarios ADD COLUMN meta_aporte_mensual FLOAT DEFAULT 0.0"))
+            if "ahorro_acumulado" not in columnas_u:
+                conn.execute(text("ALTER TABLE usuarios ADD COLUMN ahorro_acumulado FLOAT DEFAULT 0.0"))
 
-        # --- TUS CREDENCIALES FIJAS Y PERMANENTES ---
         mi_usuario_fijo = "demonik"
         mi_clave_fija = "demonik22*"
 
