@@ -9,6 +9,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
+            /* Tema Oscuro Clásico */
             --bg-body: #0b0f19;
             --bg-shell: #121824;
             --bg-header: #1a1e29;
@@ -17,16 +18,24 @@
             --text-color: #fff;
             --border-color: #2d3342;
             --input-bg: #0b0f19;
+            --accent-primary: #8a7cfb;
+            --accent-button: #6c5ce7;
+            --accent-success: #4CAF50;
         }
+        
         body.light-theme {
-            --bg-body: #f1f2f6;
-            --bg-shell: #ffffff;
-            --bg-header: #dfe4ea;
-            --bg-nav: #f1f2f6;
-            --bg-card: #f8f9fa;
-            --text-color: #2f3640;
-            --border-color: #ced6e0;
-            --input-bg: #ffffff;
+            /* Nuevo Tema Infierno (Vinotinto/Rojo) */
+            --bg-body: #1a0505;
+            --bg-shell: #2b0808;
+            --bg-header: #3d0c0c;
+            --bg-nav: #2b0808;
+            --bg-card: #3d0c0c;
+            --text-color: #ffcccc;
+            --border-color: #7a1f1f;
+            --input-bg: #1a0505;
+            --accent-primary: #ff5252;
+            --accent-button: #c23616;
+            --accent-success: #e1b12c;
         }
 
         body { 
@@ -41,7 +50,7 @@
         .header { background: var(--bg-header); padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); }
         .nav { display: flex; background: var(--bg-nav); border-bottom: 1px solid var(--border-color); overflow-x: auto; }
         .tab { flex: 1; padding: 10px 2px; background: none; border: none; color: var(--text-color); font-weight: 600; cursor: pointer; text-align: center; transition: 0.25s; font-size: 10px; white-space: nowrap; opacity: 0.7; }
-        .tab.active { color: #8a7cfb; opacity: 1; background: var(--bg-shell); border-bottom: 3px solid #8a7cfb; }
+        .tab.active { color: var(--accent-primary); opacity: 1; background: var(--bg-shell); border-bottom: 3px solid var(--accent-primary); }
         
         .section { display: none; padding: 18px; }
         #inicio.active, #cartera.active, #deudas.active, #inversiones.active, #analitica.active, #perfil.active { display: block; animation: fadeIn 0.3s ease forwards; }
@@ -63,7 +72,7 @@
         
         .emoji-btn { background: var(--bg-header); border: 1px solid var(--border-color); color: var(--text-color); padding: 5px 7px; border-radius: 6px; cursor: pointer; font-size: 13px; }
         .del-btn { background: rgba(255, 82, 82, 0.2); color: #ff5252; border: 1px solid #ff5252; padding: 5px 7px; border-radius: 6px; cursor: pointer; font-size: 11px; }
-        .add-btn { background: #6c5ce7; color: white; border: none; padding: 10px; border-radius: 8px; cursor: pointer; font-weight: bold; margin-top: 10px; width: 100%; font-size: 13px; }
+        .add-btn { background: var(--accent-button); color: white; border: none; padding: 10px; border-radius: 8px; cursor: pointer; font-weight: bold; margin-top: 10px; width: 100%; font-size: 13px; }
         .export-btn { background: #00b894; color: white; border: none; padding: 10px; border-radius: 8px; cursor: pointer; font-weight: bold; margin-top: 8px; width: 100%; font-size: 13px; text-decoration: none; display: block; text-align: center; box-sizing: border-box; }
         .sync-btn { background: #0984e3; color: white; border: none; padding: 10px; border-radius: 8px; cursor: pointer; font-weight: bold; margin-top: 8px; width: 100%; font-size: 13px; }
         .ocr-btn { background: #fdcb6e; color: #2d3436; border: none; padding: 10px; border-radius: 8px; cursor: pointer; font-weight: bold; margin-top: 8px; width: 100%; font-size: 13px; }
@@ -71,16 +80,21 @@
         #alerta-banner { display: none; background: rgba(255, 82, 82, 0.2); border: 1px solid #ff5252; color: #ff5252; padding: 10px; border-radius: 8px; font-size: 12px; margin-bottom: 12px; text-align: center; font-weight: bold; }
         
         .meta-bar-bg { background: var(--input-bg); border-radius: 8px; height: 10px; width: 100%; margin-top: 10px; overflow: hidden; border: 1px solid var(--border-color); }
-        .meta-bar-fill { background: linear-gradient(90deg, #6c5ce7, #4CAF50); height: 100%; width: 0%; transition: width 0.5s ease; }
+        .meta-bar-fill { background: linear-gradient(90deg, var(--accent-button), var(--accent-success)); height: 100%; width: 0%; transition: width 0.5s ease; }
 
         .top-item { display: flex; justify-content: space-between; align-items: center; padding: 7px 10px; background: var(--bg-header); border-radius: 8px; margin-bottom: 6px; font-size: 12px; border: 1px solid var(--border-color); }
         .esquema-step { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 10px; font-size: 12px; color: #a1a9bd; }
-        .esquema-num { background: #6c5ce7; color: white; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; flex-shrink: 0; font-size: 11px; }
+        .esquema-num { background: var(--accent-button); color: white; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; flex-shrink: 0; font-size: 11px; }
 
-        .plataforma-card { background: var(--input-bg); border: 1px solid var(--border-color); padding: 10px; border-radius: 8px; margin-top: 8px; font-size: 11px; }
-        .plataforma-card strong { color: #8a7cfb; font-size: 12px; }
+        /* Estilos para Acordeones de Inversión */
+        .plataforma-card { background: var(--input-bg); border: 1px solid var(--border-color); padding: 12px; border-radius: 8px; margin-top: 8px; font-size: 11px; cursor: pointer; transition: 0.2s; }
+        .plataforma-card:hover { border-color: var(--accent-primary); }
+        .plataforma-card strong { color: var(--accent-primary); font-size: 13px; display: block; margin-bottom: 3px; }
+        .plataforma-detalle { display: none; margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--border-color); color: var(--text-color); }
+        .plataforma-detalle.open { display: block; animation: fadeIn 0.3s ease; }
+        .monto-sugerido { display: block; font-size: 13px; font-weight: bold; color: var(--accent-success); margin-bottom: 8px; }
 
-        #emoji-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.75); justify-content: center; align-items: center; z-index: 20; }
+        #emoji-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); justify-content: center; align-items: center; z-index: 20; }
         .modal-content { background: var(--bg-shell); padding: 18px; border-radius: 14px; width: 300px; text-align: center; border: 1px solid var(--border-color); }
         .emoji-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-top: 12px; font-size: 22px; cursor: pointer; max-height: 220px; overflow-y: auto; padding: 4px; }
         .emoji-grid span { padding: 4px; border-radius: 6px; transition: 0.15s; }
@@ -91,7 +105,7 @@
 <body class="{% if not usuario.modo_oscuro %}light-theme{% endif %}">
     <div class="app-shell">
         <div class="header">
-            <h3 style="color: #8a7cfb; margin:0; letter-spacing: 1px;">MONETUM 😈</h3>
+            <h3 style="color: var(--accent-primary); margin:0; letter-spacing: 1px;">MONETUM 😈</h3>
             <div style="display: flex; gap: 6px;">
                 <select id="select-idioma" onchange="cambiarIdioma()" style="width: 60px; padding: 4px; font-size: 11px;">
                     <option value="es" {% if usuario.idioma == 'es' %}selected{% endif %}>ES</option>
@@ -114,66 +128,63 @@
             <button class="tab" onclick="switchTab(event, 'perfil')" data-i18n="nav_perfil">⚙️ Perfil</button>
         </div>
 
-        <!-- PANEL 1: INICIO (NUEVO RESUMEN FINANCIERO) -->
+        <!-- PANEL 1: INICIO (OBJETIVO Y TIEMPO) -->
         <div id="inicio" class="section active">
             <div id="alerta-banner" data-i18n="alerta_presupuesto">⚠️ Alerta: Tienes categorías superando el 85% de tu límite.</div>
             
             <div class="card">
-                <h4 style="color: #8a7cfb; text-align: center; margin-bottom: 15px;">Resumen Financiero</h4>
+                <h4 style="color: var(--accent-primary); text-align: center; margin-bottom: 15px;">Producto o Meta Principal</h4>
                 
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                    <span style="font-size: 13px;">Ingreso Mensual (Salario):</span>
-                    <input type="number" id="input-salario" value="{{ usuario.salario_mensual | int }}" style="width: 110px; padding: 5px; text-align: right; color: #8a7cfb; font-weight: bold;" oninput="recalcular(); guardarInicio();">
+                <div style="display: flex; gap: 6px; margin-bottom: 12px; align-items: center;">
+                    <button class="emoji-btn" id="meta-global-icono" onclick="abrirModalMeta()" style="font-size: 18px; padding: 8px 12px;">{{ usuario.meta_global_icono or '🗼' }}</button>
+                    <input type="text" id="meta-nombre" value="{{ usuario.meta_global_nombre }}" placeholder="¿Qué quieres comprar?" style="flex: 2; font-weight: bold;" oninput="guardarInicio()">
+                </div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <span style="font-size: 13px;">Valor Total del Producto:</span>
+                    <input type="number" id="meta-objetivo" value="{{ usuario.meta_global_objetivo | int }}" placeholder="Costo Total" style="width: 120px; padding: 5px; text-align: right;" oninput="recalcular(); guardarInicio();">
+                </div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                    <span style="font-size: 13px;">Tu Aporte Mensual:</span>
+                    <input type="number" id="input-aporte-meta" value="{{ usuario.meta_aporte_mensual | int }}" style="width: 120px; padding: 5px; text-align: right; color: var(--accent-success); font-weight: bold;" oninput="recalcular(); guardarInicio();">
                 </div>
                 
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                    <span style="font-size: 13px;">Aporte a Meta Principal:</span>
-                    <input type="number" id="input-aporte-meta" value="{{ usuario.meta_aporte_mensual | int }}" style="width: 110px; padding: 5px; text-align: right; color: #4CAF50; font-weight: bold;" oninput="recalcular(); guardarInicio();">
+                <div id="lbl-tiempo-meta" style="font-size: 13px; font-weight: bold; color: var(--accent-primary); text-align: right; margin-bottom: 15px; background: var(--input-bg); padding: 8px; border-radius: 6px; border: 1px dashed var(--border-color);">
+                    Tiempo estimado: -- meses
+                </div>
+
+                <hr style="border-color: var(--border-color); margin: 12px 0;">
+                <h4 style="color: var(--accent-primary); text-align: center; margin-bottom: 12px;">Análisis de Liquidez</h4>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <span style="font-size: 13px;">Salario / Ingresos:</span>
+                    <input type="number" id="input-salario" value="{{ usuario.salario_mensual | int }}" style="width: 120px; padding: 5px; text-align: right; font-weight: bold;" oninput="recalcular(); guardarInicio();">
                 </div>
                 
                 <div style="display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 12px; color: #a1a9bd;">
-                    <span>Sobrante para Cartera y Deudas:</span>
+                    <span>Libre tras sacar aporte de meta:</span>
                     <span id="lbl-sobrante-meta">$0</span>
                 </div>
                 
-                <hr style="border-color: var(--border-color); margin: 12px 0;">
-                
-                <div style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 12px; color: #feca57;">
-                    <span>Comprometido en Cartera (Límites):</span>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 12px; color: #feca57;">
+                    <span>Límites de Gastos (Cartera):</span>
                     <span id="lbl-total-cartera">$0</span>
                 </div>
                 
-                <div style="display: flex; justify-content: space-between; margin-bottom: 15px; font-size: 12px; color: #ff5252;">
-                    <span>Comprometido en Deudas (Cuotas):</span>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 12px; color: #ff5252;">
+                    <span>Cuotas de Deudas Registradas:</span>
                     <span id="lbl-total-deudas">$0</span>
                 </div>
                 
-                <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 16px;">
-                    <span>Totalmente Libre:</span>
+                <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 15px; background: var(--input-bg); padding: 10px; border-radius: 8px; border: 1px solid var(--border-color);">
+                    <span>Saldo Totalmente Libre:</span>
                     <span id="lbl-libre">$0</span>
                 </div>
             </div>
 
             <div class="card">
-                <h4 data-i18n="lbl_ahorro_total">Ahorro Potencial Total (Cartera)</h4>
-                <div id="lbl-ahorro" style="font-size: 26px; font-weight: bold; color: #4CAF50; text-align: center; margin-bottom: 12px;">$0</div>
-                
-                <div style="border-top: 1px solid var(--border-color); padding-top: 12px;">
-                    <h4 data-i18n="lbl_meta_principal">🎯 Progreso de Meta Global</h4>
-                    <div style="display: flex; gap: 6px; margin-bottom: 6px; align-items: center;">
-                        <button class="emoji-btn" id="meta-global-icono" onclick="abrirModalMeta()" style="font-size: 16px; padding: 6px 10px;">{{ usuario.meta_global_icono or '🗼' }}</button>
-                        <input type="text" id="meta-nombre" value="{{ usuario.meta_global_nombre }}" placeholder="Nombre" style="flex: 2;" oninput="guardarInicio()">
-                        <input type="number" id="meta-objetivo" value="{{ usuario.meta_global_objetivo | int }}" placeholder="Meta Total" style="flex: 1.2;" oninput="recalcular(); guardarInicio();">
-                    </div>
-                    <div class="meta-bar-bg">
-                        <div id="meta-progreso-fill" class="meta-bar-fill"></div>
-                    </div>
-                    <div id="lbl-meta-pct" style="font-size: 11px; color: #a1a9bd; text-align: right; margin-top: 4px;">0% cubierto</div>
-                </div>
-            </div>
-
-            <div class="card">
-                <h4 data-i18n="lbl_top_ahorro">🏆 Top Mayor Ahorro</h4>
+                <h4 data-i18n="lbl_top_ahorro">🏆 Top Categorías con Ahorro</h4>
                 <div id="top-ahorro-lista">
                     <div style="font-size: 12px; color: #a1a9bd; text-align: center;" data-i18n="calculando">Calculando...</div>
                 </div>
@@ -231,12 +242,12 @@
         <!-- PANEL 3: DEUDAS -->
         <div id="deudas" class="section">
             <div class="card">
-                <h4 style="color: #8a7cfb;" data-i18n="deudas_titulo">💳 Control de Pasivos y Deudas</h4>
+                <h4 style="color: var(--accent-primary);" data-i18n="deudas_titulo">💳 Control de Pasivos y Deudas</h4>
                 <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 8px;">
                     <input type="text" id="deuda-nombre" placeholder="Nombre (Ej. Visa)">
                     <input type="number" id="deuda-monto" placeholder="Monto Total">
                     <input type="number" id="deuda-interes" placeholder="Interés Mensual (%)">
-                    <input type="number" id="deuda-cuota" placeholder="Cuota Mensual">
+                    <input type="number" id="deuda-cuota" placeholder="Cuota Mensual (Se descuenta del salario)" oninput="recalcular()">
                     <button class="add-btn" onclick="guardarDeuda()" style="margin-top:4px;" data-i18n="btn_reg_deuda">Registrar Deuda</button>
                 </div>
             </div>
@@ -261,7 +272,7 @@
         <!-- PANEL 4: INVERSIONES -->
         <div id="inversiones" class="section">
             <div class="card">
-                <h4 style="color: #8a7cfb;" data-i18n="inv_titulo">💡 Opciones de Inversión</h4>
+                <h4 style="color: var(--accent-primary);" data-i18n="inv_titulo">💡 Opciones de Inversión</h4>
                 <label style="font-size: 11px; color: #a1a9bd;" data-i18n="inv_riesgo">Perfil de Riesgo:</label>
                 <select id="select-riesgo" onchange="calcularInversion()" style="margin-top: 4px; margin-bottom: 12px;">
                     <option value="0.008" data-i18n="opt_cons">Conservador (~ 0.8% mensual)</option>
@@ -270,28 +281,60 @@
                 </select>
                 <div style="background: var(--input-bg); padding: 12px; border-radius: 8px; text-align: center; border: 1px solid var(--border-color);">
                     <span style="font-size: 11px; color: #a1a9bd;" data-i18n="inv_proyeccion">Proyección a 12 Meses:</span>
-                    <div id="lbl-proyeccion-inv" style="font-size: 20px; font-weight: bold; color: #4CAF50; margin-top: 4px;">$0</div>
+                    <div id="lbl-proyeccion-inv" style="font-size: 20px; font-weight: bold; color: var(--accent-success); margin-top: 4px;">$0</div>
                 </div>
             </div>
 
             <div class="card">
-                <h4 style="color: #8a7cfb;">🏦 ¿Dónde Invertir Realmente?</h4>
-                <div class="plataforma-card">
-                    <strong>1. Tyba (por Credicorp Capital):</strong><br>Ideal para Fondos de Inversión Colectiva (FIC) y CDT de bajo riesgo desde montos bajos en Colombia.
+                <h4 style="color: var(--accent-primary);">🏦 ¿Dónde Invertir Realmente? <br><span style="font-size:10px; color:#a1a9bd;">(Toca una opción para ver pasos)</span></h4>
+                
+                <!-- Acordeón Tyba -->
+                <div class="plataforma-card" onclick="toggleDetalle('det-tyba')">
+                    <strong>1. Tyba (por Credicorp Capital) ▾</strong>
+                    Ideal para FIC y CDT de bajo riesgo en Colombia.
+                    <div id="det-tyba" class="plataforma-detalle">
+                        <span class="monto-sugerido lbl-sugerido-inv">Sugerido mensual: $0</span>
+                        <strong>Paso a paso:</strong>
+                        <ol style="padding-left:18px; margin-top:5px; margin-bottom:0;">
+                            <li>Descarga la app Tyba de la tienda y regístrate.</li>
+                            <li>Verifica tu identidad y vincula tu cuenta bancaria.</li>
+                            <li>Selecciona un Fondo de Inversión "Alta Liquidez".</li>
+                            <li>Transfiere el monto sugerido a través de PSE.</li>
+                        </ol>
+                    </div>
                 </div>
-                <div class="plataforma-card">
-                    <strong>2. Nu Colombia (Cuentas de Ahorro con Rendimiento):</strong><br>Excelente liquidez diaria generando rentabilidad pasiva automática sobre tu dinero libre.
-                </div>
-                <div class="plataforma-card">
-                    <strong>3. Trii / Acciones Globales:</strong><br>Plataforma regulada para comprar acciones locales (BVC) y del mercado internacional (SSE/EEUU).
-                </div>
-            </div>
 
-            <div class="card">
-                <h4 style="color: #8a7cfb;" data-i18n="inv_esquema">🗺️ Esquema para Invertir</h4>
-                <div class="esquema-step"><div class="esquema-num">1</div><div data-i18n="est_1">Separar el 30% del Ahorro Potencial.</div></div>
-                <div class="esquema-step"><div class="esquema-num">2</div><div data-i18n="est_2">Automatizar depósito mensual.</div></div>
-                <div class="esquema-step"><div class="esquema-num">3</div><div data-i18n="est_3">Aplicar interés compuesto.</div></div>
+                <!-- Acordeón Nu -->
+                <div class="plataforma-card" onclick="toggleDetalle('det-nu')">
+                    <strong>2. Cajitas de Nu Colombia ▾</strong>
+                    Rentabilidad pasiva automática sobre tu dinero libre.
+                    <div id="det-nu" class="plataforma-detalle">
+                        <span class="monto-sugerido lbl-sugerido-inv">Sugerido mensual: $0</span>
+                        <strong>Paso a paso:</strong>
+                        <ol style="padding-left:18px; margin-top:5px; margin-bottom:0;">
+                            <li>Abre tu app de Nu Bank.</li>
+                            <li>Ve a la sección "Cuenta" y toca el ícono de "Cajitas".</li>
+                            <li>Crea una cajita llamada "Fondo MONETUM".</li>
+                            <li>Mueve el monto sugerido a la cajita para ganar el 13% E.A.</li>
+                        </ol>
+                    </div>
+                </div>
+
+                <!-- Acordeón Trii -->
+                <div class="plataforma-card" onclick="toggleDetalle('det-trii')">
+                    <strong>3. Trii / Acciones Globales ▾</strong>
+                    Plataforma para acciones locales (BVC) e internacionales.
+                    <div id="det-trii" class="plataforma-detalle">
+                        <span class="monto-sugerido lbl-sugerido-inv">Sugerido mensual: $0</span>
+                        <strong>Paso a paso:</strong>
+                        <ol style="padding-left:18px; margin-top:5px; margin-bottom:0;">
+                            <li>Descarga la app Trii y completa tu perfil de riesgo.</li>
+                            <li>Deposita dinero en tu cuenta de inversión.</li>
+                            <li>Busca ETF globales (ej. S&P 500) o acciones colombianas sólidas.</li>
+                            <li>Programa compras recurrentes por el monto sugerido.</li>
+                        </ol>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -320,8 +363,8 @@
                 <button onclick="guardarPerfil()" class="add-btn" style="margin-top:0;" data-i18n="btn_guardar_perfil">Actualizar Datos</button>
             </div>
             <div class="card" style="display: flex; justify-content: space-between; align-items: center;">
-                <span data-i18n="lbl_modo_oscuro">Modo Oscuro / Claro</span>
-                <button class="emoji-btn" onclick="toggleTema()" id="btn-tema">🌙</button>
+                <span data-i18n="lbl_modo_oscuro">Cambiar Tema</span>
+                <button class="emoji-btn" onclick="toggleTema()" id="btn-tema" style="font-size: 18px; padding: 8px 12px;">🌙</button>
             </div>
             <div style="text-align: center; margin-top: 15px;">
                 <a href="/" style="color:#ff5252; text-decoration:none; font-size: 13px; font-weight:bold;" data-i18n="cerrar_sesion">Cerrar Sesión 🚪</a>
@@ -332,7 +375,7 @@
     <!-- Modal Emojis -->
     <div id="emoji-modal">
         <div class="modal-content">
-            <h4 style="color: #8a7cfb; margin:0;" data-i18n="modal_icono">Elige un Icono</h4>
+            <h4 style="color: var(--accent-primary); margin:0;" data-i18n="modal_icono">Elige un Icono</h4>
             <div class="emoji-grid">
                 <span onclick="seleccionarEmoji('🚗')">🚗</span><span onclick="seleccionarEmoji('🏍️')">🏍️</span>
                 <span onclick="seleccionarEmoji('✈️')">✈️</span><span onclick="seleccionarEmoji('🗼')">🗼</span>
@@ -366,7 +409,7 @@
         let miGraficoDona = null;
         let miGraficoLinea = null;
         let timerInicio = null;
-        let ahorroGlobalActual = 0;
+        let saldoLibreGlobal = 0;
         let idiomaActual = "{{ usuario.idioma }}";
         let modoOscuroActual = {{ 'true' if usuario.modo_oscuro else 'false' }};
 
@@ -374,26 +417,24 @@
             es: {
                 nav_inicio: "🏠 Inicio", nav_cartera: "📊 Cartera", nav_deudas: "💳 Deudas", nav_invertir: "💡 Invertir", nav_analitica: "📈 Analítica", nav_perfil: "⚙️ Perfil",
                 alerta_presupuesto: "⚠️ Alerta: Tienes categorías superando el 85% de tu límite.",
-                lbl_salario: "Salario / Ingreso Mensual", lbl_libre: "Libre tras presupuestos:", lbl_ahorro_total: "Ahorro Potencial Total (Cartera)",
-                lbl_meta_principal: "🎯 Progreso de Meta Global", lbl_top_ahorro: "🏆 Top Mayor Ahorro", calculando: "Calculando...",
+                lbl_top_ahorro: "🏆 Top Categorías con Ahorro", calculando: "Calculando...",
                 th_cat: "Categoría", th_limite: "Límite", th_gasto: "Gasto", th_ahorro: "Ahorro", th_meta: "Meta", th_balance: "Balance",
                 btn_agregar: "+ Agregar Categoría", btn_ocr: "📸 Escanear Recibo con IA (OCR)", btn_sync: "🔄 Sincronizar Open Banking", btn_csv: "📥 Descargar Reporte CSV",
                 deudas_titulo: "💳 Control de Pasivos y Deudas", deudas_activas: "Mis Deudas Activas", sin_deudas: "Sin deudas registradas", btn_reg_deuda: "Registrar Deuda",
                 inv_titulo: "💡 Opciones de Inversión", inv_riesgo: "Perfil de Riesgo:", opt_cons: "Conservador (~ 0.8% mensual)", opt_mod: "Moderado (~ 1.5% mensual)", opt_agr: "Agresivo (~ 3% mensual)",
                 inv_proyeccion: "Proyección a 12 Meses:", inv_esquema: "🗺️ Esquema para Invertir", est_1: "Separar el 30% del Ahorro Potencial.", est_2: "Automatizar depósito mensual.", est_3: "Aplicar interés compuesto.",
-                ana_evo: "Evolución Histórica", ana_dist: "Distribución de Gastos", perfil_titulo: "Credenciales de Acceso", btn_guardar_perfil: "Actualizar Datos", lbl_modo_oscuro: "Modo Oscuro / Claro", cerrar_sesion: "Cerrar Sesión 🚪", modal_icono: "Elige un Icono", cerrar: "Cerrar"
+                ana_evo: "Evolución Histórica", ana_dist: "Distribución de Gastos", perfil_titulo: "Credenciales de Acceso", btn_guardar_perfil: "Actualizar Datos", lbl_modo_oscuro: "Cambiar Tema", cerrar_sesion: "Cerrar Sesión 🚪", modal_icono: "Elige un Icono", cerrar: "Cerrar"
             },
             en: {
                 nav_inicio: "🏠 Home", nav_cartera: "📊 Wallet", nav_deudas: "💳 Debts", nav_invertir: "💡 Invest", nav_analitica: "📈 Analytics", nav_perfil: "⚙️ Profile",
                 alerta_presupuesto: "⚠️ Alert: Categories exceeding 85% of your limit.",
-                lbl_salario: "Salary / Monthly Income", lbl_libre: "Free after budget:", lbl_ahorro_total: "Total Potential Savings (Wallet)",
-                lbl_meta_principal: "🎯 Global Goal Progress", lbl_top_ahorro: "🏆 Top Savings", calculando: "Calculating...",
+                lbl_top_ahorro: "🏆 Top Savings", calculando: "Calculating...",
                 th_cat: "Category", th_limite: "Limit", th_gasto: "Spent", th_ahorro: "Savings", th_meta: "Goal", th_balance: "Balance",
                 btn_agregar: "+ Add Category", btn_ocr: "📸 AI Receipt Scan (OCR)", btn_sync: "🔄 Sync Open Banking", btn_csv: "📥 Download CSV Report",
                 deudas_titulo: "💳 Liabilities & Debts", deudas_activas: "Active Debts", sin_deudas: "No debts registered", btn_reg_deuda: "Register Debt",
                 inv_titulo: "💡 Investment Options", inv_riesgo: "Risk Profile:", opt_cons: "Conservative (~ 0.8%/mo)", opt_mod: "Moderate (~ 1.5%/mo)", opt_agr: "Aggressive (~ 3%/mo)",
                 inv_proyeccion: "12-Month Projection:", inv_esquema: "🗺️ Investment Scheme", est_1: "Separate 30% of Potential Savings.", est_2: "Automate monthly deposits.", est_3: "Apply compound interest.",
-                ana_evo: "Historical Evolution", ana_dist: "Expense Distribution", perfil_titulo: "Access Credentials", btn_guardar_perfil: "Update Details", lbl_modo_oscuro: "Dark / Light Mode", cerrar_sesion: "Log Out 🚪", modal_icono: "Choose Icon", cerrar: "Close"
+                ana_evo: "Historical Evolution", ana_dist: "Expense Distribution", perfil_titulo: "Access Credentials", btn_guardar_perfil: "Update Details", lbl_modo_oscuro: "Change Theme", cerrar_sesion: "Log Out 🚪", modal_icono: "Choose Icon", cerrar: "Close"
             }
         };
 
@@ -415,6 +456,10 @@
             });
         }
 
+        // --- SISTEMA DE TEMAS OSCURO / INFIERNO ---
+        function inicializarBotonTema() {
+            document.getElementById("btn-tema").innerText = modoOscuroActual ? "🌙" : "🔥";
+        }
         function toggleTema() {
             modoOscuroActual = !modoOscuroActual;
             if(modoOscuroActual) {
@@ -422,7 +467,7 @@
                 document.getElementById("btn-tema").innerText = "🌙";
             } else {
                 document.body.classList.add("light-theme");
-                document.getElementById("btn-tema").innerText = "☀️";
+                document.getElementById("btn-tema").innerText = "🔥";
             }
             fetch('/api/actualizar-inicio', {
                 method: 'POST',
@@ -474,16 +519,13 @@
             cerrarModal();
         }
 
-        async function sincronizarBanco() {
-            const res = await fetch('/api/sincronizar-banco', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
-            if(res.ok) { alert(idiomaActual === 'es' ? "¡Sincronización bancaria exitosa!" : "Bank sync successful!"); location.reload(); }
-        }
-
-        async function escanearReciboOCR() {
-            alert(idiomaActual === 'es' ? "📷 Escaneando recibo con IA..." : "📷 Scanning receipt with AI...");
-            const res = await fetch('/api/ocr-recibo', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
-            const data = await res.json();
-            if(data.status === 'ok') { location.reload(); }
+        // --- SISTEMA DE ACORDEONES (INVERSIÓN) ---
+        function toggleDetalle(id) {
+            const current = document.getElementById(id);
+            document.querySelectorAll('.plataforma-detalle').forEach(d => {
+                if(d.id !== id) d.classList.remove('open');
+            });
+            current.classList.toggle('open');
         }
 
         async function guardarDeuda() {
@@ -529,10 +571,16 @@
 
         function calcularInversion() {
             const tasa = parseFloat(document.getElementById("select-riesgo").value) || 0.01;
-            const capitalMensual = (ahorroGlobalActual > 0 ? ahorroGlobalActual : 100000) * 0.3;
+            // Invierte el 30% del saldo libre total
+            const capitalMensual = (saldoLibreGlobal > 0 ? saldoLibreGlobal : 100000) * 0.3;
             let total = 0;
             for(let i = 0; i < 12; i++) { total = (total + capitalMensual) * (1 + tasa); }
             document.getElementById("lbl-proyeccion-inv").innerText = formatMoneda(total);
+
+            // Actualizar el monto sugerido en las 3 tarjetas de plataforma
+            document.querySelectorAll(".lbl-sugerido-inv").forEach(el => {
+                el.innerText = `Sugerido mensual: ${formatMoneda(capitalMensual)}`;
+            });
         }
 
         function agregarFila() {
@@ -573,7 +621,18 @@
             let alertaActiva = false;
             let totalDeudas = 0;
 
-            // Calcular presupuestos (Cartera)
+            // 1. Matemáticas de la Meta Principal
+            const objetivoMeta = parseFloat(document.getElementById("meta-objetivo").value) || 1;
+            const aporteMeta = parseFloat(document.getElementById("input-aporte-meta").value) || 0;
+            
+            if(aporteMeta > 0) {
+                let mesesRestantes = Math.ceil(objetivoMeta / aporteMeta);
+                document.getElementById("lbl-tiempo-meta").innerText = `Logro estimado en: ${mesesRestantes} mes(es) 🎯`;
+            } else {
+                document.getElementById("lbl-tiempo-meta").innerText = `Fija un aporte para ver el tiempo estimado`;
+            }
+
+            // 2. Calcular Gastos (Cartera)
             document.querySelectorAll("#tabla-body tr").forEach(tr => {
                 let cat = tr.querySelector(".input-cat").value;
                 let lim = parseFloat(tr.querySelector(".limite").value) || 0;
@@ -591,7 +650,7 @@
                 
                 let cell = tr.querySelector(".ahorro");
                 cell.innerText = formatMoneda(ah);
-                cell.style.color = ah >= 0 ? "#4CAF50" : "#ff5252";
+                cell.style.color = ah >= 0 ? "var(--accent-success)" : "#ff5252";
 
                 clearTimeout(tr.temporizador);
                 tr.temporizador = setTimeout(() => {
@@ -605,34 +664,23 @@
 
             document.getElementById("alerta-banner").style.display = alertaActiva ? "block" : "none";
 
-            // Calcular suma de deudas leyendo los valores ocultos
+            // 3. Calcular Cuotas de Deudas
             document.querySelectorAll(".deuda-cuota-oculta").forEach(el => {
                 totalDeudas += parseFloat(el.innerText) || 0;
             });
 
-            // Matemáticas del Resumen Financiero Nuevo
+            // 4. Actualizar Resumen Financiero
             const salario = parseFloat(document.getElementById("input-salario").value) || 0;
-            const aporteMeta = parseFloat(document.getElementById("input-aporte-meta").value) || 0;
             const sobranteMeta = salario - aporteMeta;
             const saldoLibre = sobranteMeta - totalLimites - totalDeudas;
+            saldoLibreGlobal = saldoLibre;
 
             document.getElementById("lbl-sobrante-meta").innerText = formatMoneda(sobranteMeta);
             document.getElementById("lbl-total-cartera").innerText = formatMoneda(totalLimites);
             document.getElementById("lbl-total-deudas").innerText = formatMoneda(totalDeudas);
             
             document.getElementById("lbl-libre").innerText = formatMoneda(saldoLibre);
-            document.getElementById("lbl-libre").style.color = saldoLibre >= 0 ? "#4CAF50" : "#ff5252";
-
-            // Mostrar el ahorro potencial de la cartera abajo
-            ahorroGlobalActual = totalAhorro;
-            const lblAhorro = document.getElementById("lbl-ahorro");
-            lblAhorro.innerText = formatMoneda(totalAhorro);
-            lblAhorro.style.color = totalAhorro >= 0 ? "#4CAF50" : "#ff5252";
-
-            const objetivo = parseFloat(document.getElementById("meta-objetivo").value) || 1;
-            const pct = Math.max(0, Math.min(100, (totalAhorro / objetivo) * 100));
-            document.getElementById("meta-progreso-fill").style.width = pct + "%";
-            document.getElementById("lbl-meta-pct").innerText = `${pct.toFixed(1)}%`;
+            document.getElementById("lbl-libre").style.color = saldoLibre >= 0 ? "var(--accent-success)" : "#ff5252";
 
             const topContainer = document.getElementById("top-ahorro-lista");
             const topOrdenado = rankingItems.filter(i => i.ah > 0).sort((a, b) => b.ah - a.ah).slice(0, 3);
@@ -641,7 +689,7 @@
                 topContainer.innerHTML = topOrdenado.map((item, idx) => `
                     <div class="top-item">
                         <span>${medallas[idx]} ${item.meta} <strong>${item.cat}</strong></span>
-                        <span style="color: #4CAF50; font-weight: bold;">+${formatMoneda(item.ah)}</span>
+                        <span style="color: var(--accent-success); font-weight: bold;">+${formatMoneda(item.ah)}</span>
                     </div>
                 `).join('');
             } else {
@@ -649,6 +697,7 @@
             }
 
             window.datosGrafico = { nombres: nombresCat, gastos: gastosCat, ahorroTotal: totalAhorro };
+            calcularInversion(); // Actualiza el monto en la pestaña invertir
         }
 
         function actualizarAnalitica() {
@@ -661,18 +710,20 @@
                 let gas = parseFloat(tr.querySelector(".gasto").value) || 0;
                 let ah = lim - gas;
                 let estadoHTML = ah >= 0 
-                    ? `<span style="color:#4CAF50;">✅ +${formatMoneda(ah)}</span>` 
+                    ? `<span style="color:var(--accent-success);">✅ +${formatMoneda(ah)}</span>` 
                     : `<span style="color:#ff5252;">⚠️ -${formatMoneda(Math.abs(ah))}</span>`;
                 tbodyAnalitica.innerHTML += `<tr><td>${cat}</td><td>${estadoHTML}</td></tr>`;
             });
 
+            const coloresInfierno = modoOscuroActual ? ['#8a7cfb', '#4CAF50', '#ff5252', '#feca57', '#54a0ff'] : ['#ff5252', '#c23616', '#e1b12c', '#d35400', '#c0392b'];
+            
             const ctxDona = document.getElementById('graficoGastos').getContext('2d');
             if (miGraficoDona) miGraficoDona.destroy();
             miGraficoDona = new Chart(ctxDona, {
                 type: 'doughnut',
                 data: {
                     labels: window.datosGrafico.nombres,
-                    datasets: [{ data: window.datosGrafico.gastos, backgroundColor: ['#8a7cfb', '#4CAF50', '#ff5252', '#feca57', '#54a0ff', '#ff9ff3'], borderWidth: 0 }]
+                    datasets: [{ data: window.datosGrafico.gastos, backgroundColor: coloresInfierno, borderWidth: 0 }]
                 },
                 options: { responsive: true, plugins: { legend: { labels: { color: 'var(--text-color)', font: { size: 10 } }, position: 'bottom' } } }
             });
@@ -687,8 +738,8 @@
                     datasets: [{
                         label: 'Ahorro',
                         data: [ahActual * 0.7, ahActual * 0.85, ahActual * 0.9, ahActual],
-                        borderColor: '#4CAF50',
-                        backgroundColor: 'rgba(76, 175, 80, 0.1)',
+                        borderColor: modoOscuroActual ? '#4CAF50' : '#ff5252',
+                        backgroundColor: modoOscuroActual ? 'rgba(76, 175, 80, 0.1)' : 'rgba(255, 82, 82, 0.1)',
                         fill: true,
                         tension: 0.3
                     }]
@@ -725,6 +776,7 @@
         }
 
         aplicarIdioma(idiomaActual);
+        inicializarBotonTema();
         recalcular();
     </script>
 </body>
